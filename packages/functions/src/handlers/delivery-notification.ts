@@ -1,0 +1,12 @@
+import { responsiveEmail } from '../documents/email';
+import { receipt } from '../documents/receipt';
+import { getOrder, slackMessage, sqsWorker } from '@shop/service';
+import { z } from 'zod';
+import { revision } from './delivery-notification.revision';
+
+export const handler = sqsWorker({ name: 'delivery-notification', schema: z.object({ orderId: z.string(), status: z.enum(['delivered', 'failed']) }), sample: { orderId: 'ord_100', status: 'delivered' } }, async ({ orderId, status }) => {
+  const order = await getOrder(orderId);
+  if (status === 'failed') return { receipt: await receipt('delivery-notification'), revision, orderId, slack: slackMessage('#fulfilment', `Delivery failed for ${orderId}`, [order.customer.name]).channel };
+  const email = await responsiveEmail(order.customer.email, `Order ${orderId} delivered`, '<p>Your order has arrived. Enjoy!</p>');
+  return { receipt: await receipt('delivery-notification'), revision, orderId, emailed: email.to };
+});
