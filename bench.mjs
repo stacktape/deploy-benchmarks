@@ -7,6 +7,7 @@
 //   node bench.mjs push    <tool> <app> [--runs 5]           push a code change: cold, then warm 15 minutes later
 //   deploy and push take --change shared to change the shared service package (packages/service/src/orders.ts) instead of each handler (Lambda apps)
 //   node bench.mjs remove  <tool> <app>                      delete what setup created
+import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -235,6 +236,22 @@ async function resetCache() {
   throw new Error(`${toolName} has no scripted cache reset. Reset it by hand (see README.md) and pass --cold-reset manual.`);
 }
 
+/**
+ * Waits until the previous deploy of the branch has finished. A GitHub Actions deploy can still be waiting for the
+ * stack update after the new code answers (CDK waits for ECS to settle), and a push during it makes the next workflow
+ * fail on a stack that is still updating.
+ */
+async function waitForWorkflows() {
+  if (tool.gitDeploy !== 'github-actions') return;
+  for (const deadline = Date.now() + 30 * 60_000; Date.now() < deadline; await sleep(10_000)) {
+    const { stdout } = await new Promise((resolve, reject) =>
+      execFile('gh', ['run', 'list', '--branch', branch, '--limit', '5', '--json', 'status'], { cwd: dir }, (error, stdout) => (error ? reject(error) : resolve({ stdout })))
+    );
+    if (JSON.parse(stdout).every((r) => r.status === 'completed')) return;
+  }
+  throw new Error(`The previous workflow run of ${branch} did not finish within 30 minutes`);
+}
+
 async function pushRuns() {
   if (!measurements(t).push) throw new Error(`${toolName} has no Git push test on ${appId}`);
   const info = await describeRun();
@@ -242,8 +259,10 @@ async function pushRuns() {
   for (let i = 1; i <= runs; i++) {
     let readyAt = 0;
     for (const cache of ['cold', 'warm']) {
-      const coldReset = cache === 'cold' ? await resetCache() : undefined;
       if (cache === 'warm') await sleep(Math.max(0, readyAt + 15 * 60_000 - Date.now()));
+      // The previous workflow saves its caches when it ends, so the cold reset waits for it.
+      await waitForWorkflows();
+      const coldReset = cache === 'cold' ? await resetCache() : undefined;
       const result = await attempt(`git-${cache}`, () => timedChange({ journey: `git-${cache}`, push }));
       readyAt = Date.now();
       let build;

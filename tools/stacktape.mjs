@@ -8,12 +8,18 @@ import { join } from 'node:path';
 import { capture, findFunctions, imageBytes, REGION, serviceDir, STAGE, stackOutputs, zipSize } from '../lib.mjs';
 
 // The stacktape/stacktape commit the published results were measured with. `version` checks that STACKTAPE_BIN was
-// built from it (the build's version ends in the short commit).
-const COMMIT = 'd51f56ad17b9a24056046d7af99bd3716afb30da';
+// built from it (the build's version ends in the short commit). STACKTAPE_COMMIT measures another build without
+// changing the generated files, so a Git push still continues the published branch.
+const PINNED_COMMIT = 'd51f56ad17b9a24056046d7af99bd3716afb30da';
+const COMMIT = process.env.STACKTAPE_COMMIT ?? PINNED_COMMIT;
+// The Stacktape project, and so the stack `<project>-bmk`, defaults to the test's name. STACKTAPE_PROJECT_NAME gives
+// a second measurement in the same AWS account its own project and stack.
+const project = (name) => process.env.STACKTAPE_PROJECT_NAME ?? name;
 
 // `docs` is set when the commands are written into a branch README rather than run.
 const bin = ({ docs } = {}) => (docs ? 'stacktape' : (process.env.STACKTAPE_BIN ?? 'stacktape'));
 const common = ['--stage', STAGE, '--region', REGION];
+const projectArgs = ({ docs }) => (!docs && process.env.STACKTAPE_PROJECT_NAME ? ['--projectName', process.env.STACKTAPE_PROJECT_NAME] : []);
 function account({ docs }) {
   if (docs) return ['--awsAccount', '<connection-name>'];
   if (!process.env.STACKTAPE_AWS_ACCOUNT) throw new Error('Set STACKTAPE_AWS_ACCOUNT to the Console connection name of the AWS account to deploy to');
@@ -53,7 +59,7 @@ export default {
     name: 'Stacktape',
     account: 'a Stacktape account with the AWS account connected',
     version:
-      `The Stacktape CLI built from source of [stacktape/stacktape](https://github.com/stacktape/stacktape) at commit [\`${COMMIT.slice(0, 8)}\`](https://github.com/stacktape/stacktape/commit/${COMMIT}), as described in the main README. Each result records the commit (\`stacktapeCommit\`).`,
+      `The Stacktape CLI built from source of [stacktape/stacktape](https://github.com/stacktape/stacktape) at commit [\`${PINNED_COMMIT.slice(0, 8)}\`](https://github.com/stacktape/stacktape/commit/${PINNED_COMMIT}), as described in the main README. Each result records the commit (\`stacktapeCommit\`).`,
     credentials: [
       '`AWS_PROFILE`: a profile for the disposable AWS account. The harness uses it to call the deployed code and read stack outputs.',
       '`STACKTAPE_API_KEY`, or run `stacktape login` once.',
@@ -94,11 +100,11 @@ export default {
     ];
   },
   // Code-only changes are updated directly (without CloudFormation) by the default deploy.
-  deploy: (ctx) => [bin(ctx), 'deploy', ...common, ...account(ctx), '--autoConfirmOperation'],
-  remove: (ctx) => [bin(ctx), 'delete', ...common, ...account(ctx), '--autoConfirmOperation'],
+  deploy: (ctx) => [bin(ctx), 'deploy', ...common, ...projectArgs(ctx), ...account(ctx), '--autoConfirmOperation'],
+  remove: (ctx) => [bin(ctx), 'delete', ...common, ...projectArgs(ctx), ...account(ctx), '--autoConfirmOperation'],
   addresses({ app, name }) {
-    if (app.kind === 'lambda') return findFunctions(`${name}-${STAGE}-`, app.functions);
-    const outputs = stackOutputs(`${name}-${STAGE}`);
+    if (app.kind === 'lambda') return findFunctions(`${project(name)}-${STAGE}-`, app.functions);
+    const outputs = stackOutputs(`${project(name)}-${STAGE}`);
     return Object.fromEntries(Object.keys(app.services).map((s) => [s, outputs[`${s}Url`]]));
   }
 };
