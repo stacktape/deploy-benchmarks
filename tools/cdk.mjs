@@ -1,6 +1,6 @@
 // AWS CDK v2: NodejsFunction for Lambda, ApplicationLoadBalancedFargateService for containers.
 // Git push journey: the shared GitHub Actions workflow.
-import { readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BASE_IMAGES, capture, dockerBuild, dockerfile, githubActionsSetup, imageBytes, REGION, serviceDir, stackOutputs, zipSize } from '../lib.mjs';
 
@@ -74,12 +74,14 @@ export default {
   // zipping is not in CDK's packaging time; the upload size zips each directory at zlib's default level, as CDK does.
   // Container images are built only during `cdk deploy`, with `docker build`; the same build here gives the image size.
   package: ({ app, name }) => (app.kind === 'service' ? dockerBuild(app, 'api', name) : [...cdk, 'synth', '--quiet']),
+  // Only the assets of the current synth: cdk.out keeps the directories of earlier builds, which a warm build reuses.
   artifacts: ({ app, name, dir }) =>
     app.kind === 'service'
       ? [{ file: name, bytes: imageBytes(name) }]
-      : readdirSync(join(dir, 'cdk.out'))
-          .filter((f) => f.startsWith('asset.'))
-          .map((f) => ({ file: `${f}.zip`, bytes: zipSize(join(dir, 'cdk.out', f)) })),
+      : Object.values(JSON.parse(readFileSync(join(dir, 'cdk.out', `${name}.assets.json`), 'utf8')).files)
+          .map((asset) => asset.source.path)
+          .filter((path) => path.startsWith('asset.'))
+          .map((path) => ({ file: `${path}.zip`, bytes: zipSize(join(dir, 'cdk.out', path)) })),
   deploy: () => [...cdk, 'deploy', '--require-approval', 'never'],
   remove: () => [...cdk, 'destroy', '--force'],
   addresses({ app, name }) {
