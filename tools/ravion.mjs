@@ -42,11 +42,12 @@ export default {
   // repository: the `buildcache` tag and the previous image, tagged `railpack`.
   resetCache: ({ app, run }) =>
     Promise.all(app.changed.map((s) => run(['aws', 'ecr', 'batch-delete-image', '--region', REGION, '--repository-name', repository(app, s), '--image-ids', 'imageTag=buildcache', 'imageTag=railpack']))),
-  // The build step of each pipeline run started after the push. Its time includes starting the EC2 Spot builder.
-  // The size is the compressed image size in ECR, which is what a push to an empty registry uploads.
+  // The build step of each pipeline run started by the push. Its time includes starting the EC2 Spot builder. The
+  // size is the compressed image size in ECR, which is what a push to an empty registry uploads. GitHub can start a
+  // run before `git push` returns, so runs from the minute before pushedAt count too.
   buildInfo: ({ pushedAt }) =>
     ravion('pipeline', 'run', 'list', '--limit', '20')
-      .filter((run) => Date.parse(run.createdAt) >= Date.parse(pushedAt))
+      .filter((run) => Date.parse(run.createdAt) >= Date.parse(pushedAt) - 60_000)
       .flatMap((run) => ravion('pipeline', 'step-execution', 'list', '--pipeline-run-id', run.id, '--step-type', 'build'))
       .map((step) => {
         const { image_digest: digest, registry_uri: registry } = step.outputData ?? {};

@@ -281,6 +281,8 @@ them from the tool modules in [`tools/`](tools).
   - The project's Terraform change and destroy pipelines are copies of Ravion's system pipelines with
     `infrastructure: {type: ec2, instance_size: c7a.large}` instead of sandboxes. They only create the
     infrastructure, which is not measured.
+- The five-service application does not build on Ravion yet. Ravion's EC2 builder applies `source_base_path` twice
+  (`directory .../api/api does not exist`), so a service in a subdirectory cannot be built with Railpack.
 
 ## Where a tool needed help
 
