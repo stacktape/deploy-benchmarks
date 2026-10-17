@@ -173,11 +173,17 @@ async function timedChange({ journey, push, deploy }) {
   });
   const commands = await running;
   // Every target must now give the right business result from the expected revision: new for changed targets, old
-  // for unchanged ones.
+  // for unchanged ones. During a rolling update a load balancer still sends some requests to the old task, so a
+  // changed service gets up to a minute to answer from the new revision.
   const checks = await Promise.all(
     targetNames(app).map(async (t) => {
-      const response = await call(app, t, addresses[t], { business: true });
-      return businessOk(app, t, response) && (expected[t] === undefined || response[change.field] === expected[t]);
+      for (let attempt = 1; ; attempt++) {
+        const response = await call(app, t, addresses[t], { business: true });
+        const right = businessOk(app, t, response);
+        const current = expected[t] === undefined || response[change.field] === expected[t];
+        if (!right || current || !change.targets.includes(t) || app.kind === 'lambda' || attempt === 60) return right && current;
+        await sleep(1000);
+      }
     })
   );
   return {

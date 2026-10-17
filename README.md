@@ -143,8 +143,10 @@ reports.
 `git push` returns. The clock stops when every changed function or service has returned the new revision. Functions
 are invoked every 250 ms and services are called every second. The clock does not wait for the command to exit; the
 command's own duration is recorded separately. After the clock stops, every function and service must also return
-the right business result (for example a cart total of `33.00`) from the expected revision. Runs that fail this
-check are kept in the raw data but left out of the results.
+the right business result (for example a cart total of `33.00`) from the expected revision. During a rolling update
+a load balancer still sends some requests to the old code, so a changed service gets up to a minute to answer from
+the new revision; the clock has already stopped. Runs that fail this check are kept in the raw data but left out of
+the results.
 
 **Packaging.** The clock covers the tool's own packaging command. Before each run we delete the tool's previous build
 output. Every series starts with one run that is not measured, so nothing a tool downloads on first use is timed. The
