@@ -45,7 +45,7 @@ Replace `sst lambda-25` with any tool and application from the list of branches.
 | AWS CDK with hotswap | `AWS_PROFILE`: a profile for the disposable AWS account. `cdk bootstrap` runs once during setup. |
 | Render | `RENDER_API_KEY`: the harness creates the services, reads their URLs and build events and empties their build caches through the Render API.<br>`BENCH_FORK`: the URL of your fork. Render's GitHub app must have access to it. |
 | Heroku | `HEROKU_API_KEY`, or run `heroku login` once.<br>The builds plugin: `heroku plugins:install @heroku-cli/heroku-builds`. |
-| Ravion | Run `ravion login` once.<br>`RAVION_URL_API`, and for five services also `RAVION_URL_REPORTING`, `RAVION_URL_INVENTORY`, `RAVION_URL_WEBHOOKS` and `RAVION_URL_NOTIFICATIONS`: the URL of each service. |
+| Ravion | Run `ravion login` once.<br>AWS credentials for the connected account, for example `AWS_PROFILE`: the harness empties the build cache in ECR and reads image sizes from ECR.<br>`RAVION_URL_API`, and for five services also `RAVION_URL_REPORTING`, `RAVION_URL_INVENTORY`, `RAVION_URL_WEBHOOKS` and `RAVION_URL_NOTIFICATIONS`: the URL of each service. |
 
 <!-- /generated:credentials -->
 
@@ -261,9 +261,26 @@ them from the tool modules in [`tools/`](tools).
 
 ### Ravion
 
-- [`tools/ravion.mjs`](tools/ravion.mjs). No extra configuration: Ravion's default builder, Railpack, detects the
-  runtime and start command from the source.
-- Ravion deploys only from a Git repository, so it has no laptop deploy. Build time comes from Ravion's pipeline runs.
+- [`tools/ravion.mjs`](tools/ravion.mjs). Ravion's configuration lives in the Ravion project, not in the test branch.
+  Railpack detects the runtime, dependencies and start command from the source.
+- Ravion deploys only from a Git repository, so it has no laptop deploy. Build time and image size come from the
+  build step of Ravion's pipeline runs and from ECR.
+- One Ravion project (`bmk`) with one environment (`bench`) in `eu-west-1`, set up as in Ravion's
+  [Node.js guide](https://www.ravion.com/docs/deploy/aws/node-express) with the current module versions:
+  - `rvn-aws-network` 1.2.1 with its defaults (three subnet pairs, one NAT gateway).
+  - `rvn-ecs-cluster` 2.2.0 with `use_ravion_managed_domains: true` and `load_balancer_deletion_protection_enabled: false`.
+  - One `rvn-ecs-web` 2.3.0 per service: `build_source: railpack`, `source_repo: github.com/<you>/deploy-benchmarks`,
+    `container_port: 3000`, `health_check_path: /health`, `fargate_size: {vcpu: 0.25, memory_gb: 0.5}`
+    and `build_capacity_type: ec2-spot`. The module and service names are `container-node`/`bmk-container-node`,
+    `container-python`/`bmk-container-python`, and for five services `five-services-<service>`/`bmk-fs-<service>` with
+    `source_base_path: <service>`. Every other input keeps its default, including Railpack's commands, autoscaling
+    from one task and rolling deploys.
+  - One pipeline per service, with the module's given ID: a `build` step with `branch` and `ref` from the push, then a
+    `deploy` step with the build's `image_digest`, and a `webhook:github` push trigger filtered to the test's branch
+    (and, for five services, `paths: ['<service>/**']`).
+  - The project's Terraform change and destroy pipelines are copies of Ravion's system pipelines with
+    `infrastructure: {type: ec2, instance_size: c7a.large}` instead of sandboxes. They only create the
+    infrastructure, which is not measured.
 
 ## Where a tool needed help
 
@@ -276,6 +293,8 @@ them from the tool modules in [`tools/`](tools).
 | A Dockerfile | SST, AWS CDK | Both need one to build a container. Stacktape, Render, Heroku and Ravion build from the source. |
 | `--awsAccount` | Stacktape | Stacktape deploys with credentials from the Stacktape Console for a connected AWS account, not with `AWS_PROFILE`. |
 | ES module output (`bundling.format: OutputFormat.ESM`) with a `banner` that defines `require` | AWS CDK | Prisma's generated client reads `import.meta.url`, which CDK's default CommonJS bundle leaves empty, so every function failed when Lambda loaded it. This is the same fix as Serverless's banner. |
+| EC2 Spot builders (`build_capacity_type: ec2-spot`) instead of the default sandbox builders, and Terraform pipelines on EC2 | Ravion | Ravion's default since 12 October 2026 runs builds and Terraform in Firecracker sandboxes on a pool of EC2 hosts. In our Ravion organization every sandbox host is refused at enrollment (`Ravion:SandboxHost:ENROLLMENT_REJECTED`, "this organization has no machine-identity application to issue a host credential on"), so no build or Terraform run ever starts. Updating the AWS permissions to 1.0.55 did not help. Each build now starts a new c7a.4xlarge Spot instance; in our first build, about 110 seconds passed before the build itself began. A warm sandbox host starts a build in seconds, so Ravion's build times here are slower than its default would be. |
+| Ravion-managed domains (`use_ravion_managed_domains: true`) | Ravion | The Node.js guide's configuration fails validation with the current cluster module, whose public load balancer uses HTTPS and needs a certificate. Ravion-managed domains give each service an HTTPS address under `cluster.ravion.app` without one. |
 
 **Left at each tool's default:** the AWS SDK and Prisma. Stacktape, Serverless Framework and AWS CDK all leave
 `@aws-sdk/*` out of the bundle, because the Node.js 22 Lambda runtime provides it, and bundle Prisma's client, whose
@@ -294,9 +313,9 @@ query compiler is plain JavaScript and WebAssembly in Prisma 7. `prisma generate
 - **SST's packaging time** includes the plan comparison of `sst diff`, because SST has no packaging-only command.
 - **CDK's and Stacktape's packaging times** do not include zipping that happens only during deploy (CDK's function
   bundles, Stacktape's shared layers). Their upload sizes do include those ZIPs.
-- **Hosted builders** (Render, Heroku, Ravion) run on the provider's machines, so their build times depend on the
-  provider's capacity. Render and Ravion have no way to empty only the build cache, so their first-push runs need a
-  manual cache reset.
+- **Hosted builders.** Render and Heroku build on the provider's machines, so their build times depend on the
+  provider's capacity. Ravion builds on EC2 Spot instances in the connected account, which depend on Spot capacity.
+  Render has no way to empty only the build cache, so its first-push runs need a manual cache reset.
 - **One machine, one region, one period.** The results describe this setup, not every project.
 
 ## Run the benchmark
@@ -416,10 +435,10 @@ application:
 
 **Ravion**
 
-- In Ravion, connect your fork and your AWS account.
-- Add one web module with the repository root as its source directory and the default builder, and turn on deploy on push for the test's branch.
+- In Ravion, connect your AWS account, and install Ravion's GitHub app on your fork in Settings / Git connections.
+- Create the Ravion project described in the main README: a network, an ECS cluster, one web module with the repository root as its source directory, and one pipeline that builds and deploys every push to the test's branch.
 - Set the `RAVION_URL_*` variables to the service URLs.
-- Ravion has no command that empties its build cache. Reset it by hand before each first push and pass `--cold-reset manual`.
+- The first push of each pair empties the build cache: it deletes the `buildcache` and `railpack` tags from each changed service's ECR repository.
 
 <!-- /generated:git-push-setup -->
 
