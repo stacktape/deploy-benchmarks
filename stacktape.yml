@@ -1,0 +1,33 @@
+{
+  "projectName": "bmk-stacktape-container-python",
+  "resources": {
+    "api": {
+      "type": "web-service",
+      "properties": {
+        "codeSwap": true,
+        "packaging": {
+          "type": "buildpack",
+          "properties": {
+            "sourceDirectoryPath": "."
+          }
+        },
+        "resources": {
+          "cpu": 0.25,
+          "memory": 512
+        },
+        "scaling": {
+          "minInstances": 1,
+          "maxInstances": 1
+        }
+      }
+    }
+  },
+  "stackConfig": {
+    "outputs": [
+      {
+        "name": "apiUrl",
+        "value": "$ResourceParam('api', 'url')"
+      }
+    ]
+  }
+}
