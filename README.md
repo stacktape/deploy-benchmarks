@@ -51,17 +51,283 @@ Replace `sst lambda-25` with any tool and application from the list of branches.
 
 ## Results
 
-Results will be published here after the measurement runs on a dedicated EC2 machine.
+These are the results of a **qualification run** on 17 October 2026, between 13:47 and 20:37 UTC. It checked the
+harness on a dedicated machine and measured the Stacktape fixes merged up to
+[`d51f56ad`](https://github.com/stacktape/stacktape/commit/d51f56ad17b9a24056046d7af99bd3716afb30da). The figures on
+stacktape.com will come from a rerun with the released Stacktape CLI (Stacktape's launch item L20), so these numbers
+can change before then.
 
-| Test | Stacktape | Serverless Framework | SST | AWS CDK | Render | Heroku | Ravion |
+- **Machine:** an EC2 `c7i.2xlarge` (8 vCPUs, 16 GB) in `eu-west-1`, Amazon Linux 2023, Node.js 24.15.0, Docker
+  29.7.2 with the containerd image store and buildx 0.38. Each result records the machine.
+- **Stacktape:** CLI `4.0.0-bench.d51f56ad`, built from source as described in
+  [Build Stacktape from source](#build-stacktape-from-source).
+- **Other tools:** Serverless Framework 4.44.0, SST 4.17.2, CDK CLI 2.1145.0 and Heroku CLI 11.12.0, as pinned in
+  `configs/`. Render and Heroku built with what they offered that day.
+- **Harness:** this repository from commit `b10797f` on. The fixes made during the run are listed under
+  [Changes during the run](#changes-during-the-run).
+- **Order:** packaging ran alone on the machine. The deploy tests then ran in rounds, one run of each tool per round,
+  with up to four series at a time (Lambda, and one per container application); the Git push pairs ran next to them.
+  The machine's 5-minute load average stayed below 3 during the deploy tests.
+- **Raw data:** every run is in [`results/`](results). `node report.mjs` prints every series; its full output is at
+  the end of this section.
+
+Every cell is the median of at least 10 runs, with the fastest and slowest run in brackets. Times are in seconds.
+**Bold** is the fastest or smallest in its row. A blank cell means the tool has no such test (see
+[What we measured](#what-we-measured)). `[n failed]` counts runs that failed and are left out of the median.
+
+**Not measured yet:**
+
+- **Stacktape Git push** is pending. The Stacktape Console runner installs the CLI from npm, and the measured commit is
+  not published, so this test runs separately with a published version.
+- **Ravion** is pending: our Ravion account needs a setup step from its owner.
+- **Ravion five-services** is blocked by a Ravion bug: its EC2 builder applies `source_base_path` twice (see
+  [Ravion](#ravion)).
+
+**Packaging time in seconds, empty build cache: median (fastest–slowest)**
+
+| App | Stacktape | Serverless | SST | AWS CDK |
+| --- | --- | --- | --- | --- |
+| `lambda-1` | **1.7 (1.7–1.7)** | 5.2 (5.0–5.5) | 6.3 (6.2–6.5) | 3.0 (2.9–3.3) |
+| `lambda-5` | **1.9 (1.8–1.9)** | 7.0 (6.9–7.2) | 7.6 (7.5–8.0) | 4.4 (4.3–4.5) |
+| `lambda-25` | **3.2 (3.1–3.2)** | 19.5 (19.2–19.8) | 14.0 (13.7–14.3) | 11.4 (11.3–11.5) |
+
+**Packaging time in seconds, after a source change: median (fastest–slowest)**
+
+| App | Stacktape | Serverless | SST | AWS CDK |
+| --- | --- | --- | --- | --- |
+| `lambda-1` | **1.7 (1.7–1.7)** | 5.1 (5.0–5.3) | 6.4 (6.2–6.5) | 3.0 (2.9–3.0) |
+| `lambda-5` | **1.9 (1.8–1.9)** | 7.0 (6.9–7.2) | 7.8 (7.6–8.1) | 4.4 (4.3–4.4) |
+| `lambda-25` | **3.2 (3.1–3.3)** | 19.6 (19.3–20.4) | 14.7 (14.4–15.0) | 11.4 (11.3–11.6) |
+
+**Upload size in MB (functions, layers and source maps)**
+
+| App | Stacktape | Serverless | SST | AWS CDK |
+| --- | --- | --- | --- | --- |
+| `lambda-1` | **6.6** | 16.5 | 33.7 | 9.4 |
+| `lambda-5` | **6.7** | 74.6 | 115.8 | 19.3 |
+| `lambda-25` | **6.7** | 361.8 | 515.5 | 68.1 |
+
+**Container image size in MB (compressed, one measurement)**
+
+| App | Stacktape | SST | AWS CDK |
+| --- | --- | --- | --- |
+| `container-node` | **63.3** | 86.6 | 86.6 |
+| `container-python` | **53.4** | 54.7 | 54.7 |
+
+**Deploy from the CLI: seconds until the new code serves**
+
+| App | Stacktape | Serverless | SST | AWS CDK | CDK hotswap | Heroku |
+| --- | --- | --- | --- | --- | --- | --- |
+| `lambda-1` | **9.5 (8.8–11.1)** | 19.8 (18.5–21.3) | 13.8 (13.3–20.3) | 20.7 (20.3–22.1) | 11.4 (10.9–12.7) |  |
+| `lambda-5` | **9.8 (7.2–10.5)** | 23.1 (22.6–24.7) | 14.9 (14.1–15.2) | 22.4 (22.1–23.7) | 13.4 (12.7–14.5) |  |
+| `lambda-25` | **11.9 (10.5–12.3)** | 48.0 (45.9–66.3) | 32.2 (25.4–33.3) | 58.7 (38.9–66.9) | 27.1 (26.0–28.4) |  |
+| `container-node` | 40.1 (32.1–50.1) |  | 138.6 (49.0–168.1) | 68.1 (60.0–78.1) | 49.5 (36.0–64.1) | **28.0 (25.0–30.1)** |
+| `container-python` | 47.6 (39.1–65.1) |  | 96.6 (44.0–428.2) [1 failed] | 66.1 (61.0–85.1) | 40.5 (36.0–58.1) | **21.6 (19.1–47.1)** |
+| `five-services` | 57.6 (38.1–63.1) |  | 73.0 (54.0–408.2) [1 failed] | 77.6 (72.1–86.1) | 54.5 (46.0–58.0) | **30.5 (28.0–64.1)** |
+
+**Deploy from the CLI, shared-package change (every function): seconds until the new code serves**
+
+| App | Stacktape | Serverless | SST | AWS CDK | CDK hotswap | Heroku |
+| --- | --- | --- | --- | --- | --- | --- |
+| `lambda-1` | **9.5 (9.1–9.9)** | 19.7 (19.2–20.6) | 13.6 (13.0–16.7) [2 failed] | 20.8 (20.2–21.3) | 11.6 (11.4–12.4) |  |
+| `lambda-5` | 29.9 (28.9–31.1) | 23.1 (22.3–108.2) | 14.8 (14.5–15.8) | 22.6 (22.2–23.5) | **13.2 (12.8–13.5)** |  |
+| `lambda-25` | 37.7 (34.3–114.4) | 46.7 (43.3–50.6) | 31.7 (29.3–33.2) | 58.4 (38.6–68.6) | **25.8 (24.8–27.9)** |  |
+
+**Git push with an empty build cache: seconds from `git push` until the new code serves**
+
+| App | Stacktape | Serverless | SST | AWS CDK | Render | Heroku | Ravion |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Package 1 / 5 / 25 Lambda functions | – | – | – | – | | | |
-| Node.js / Python container image size | – | | – | – | | – | |
-| Deploy a change from a laptop | – | – | – | – | | – | |
-| Deploy a change by Git push | – | – | – | – | – | – | – |
+| `lambda-1` | pending | 57.4 (47.1–61.5) | **57.2 (49.8–64.3)** | 58.9 (53.7–66.1) |  |  |  |
+| `lambda-5` | pending | 65.0 (58.0–93.7) | **59.2 (53.9–63.4)** | 59.9 (51.9–69.0) |  |  |  |
+| `lambda-25` | pending | 127.8 (109.6–219.4) | **72.0 (58.9–86.1)** | 102.8 (82.3–165.2) |  |  |  |
+| `container-node` | pending |  | 417.2 (93.1–424.2) | 108.1 (100.1–119.1) | **34.1 (28.1–116.1)** | 37.5 (34.0–42.0) | pending |
+| `container-python` | pending |  | 410.7 (83.1–430.2) | 101.1 (94.0–106.1) | 54.1 (45.1–74.1) | **33.6 (29.1–38.1)** | pending |
+| `five-services` | pending |  | 273.1 (125.1–414.2) | 117.0 (111.0–126.0) | **37.6 (33.1–120.1) [1 failed]** |  | blocked |
 
-Each cell will show the median of ten runs, with the fastest and slowest run. The raw data for every run will be in
-`results/`, and `node report.mjs` prints the summary.
+**Git push 15 minutes later: seconds from `git push` until the new code serves**
+
+| App | Stacktape | Serverless | SST | AWS CDK | Render | Heroku | Ravion |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `lambda-1` | pending | **55.4 (47.2–60.9)** | 58.1 (48.5–65.4) | 55.5 (49.9–63.4) |  |  |  |
+| `lambda-5` | pending | 64.4 (55.6–99.4) | 60.4 (45.3–66.6) | **59.8 (49.9–69.8)** |  |  |  |
+| `lambda-25` | pending | 118.4 (110.3–139.9) | **75.4 (62.7–84.4)** | 105.0 (68.2–134.7) |  |  |  |
+| `container-node` | pending |  | 97.5 (86.0–116.1) | 109.6 (97.0–122.1) | 39.6 (31.1–70.1) | **37.0 (33.0–76.1)** | pending |
+| `container-python` | pending |  | 96.1 (86.0–115.1) | 105.1 (96.0–116.1) | 55.1 (36.1–88.1) | **29.0 (27.0–34.0)** | pending |
+| `five-services` | pending |  | 115.0 (106.0–134.1) | 112.1 (100.0–130.0) | **38.6 (34.1–85.1)** |  | blocked |
+
+**Reading the results:**
+
+- **Deploy time is time until the new code serves, not until the command exits.** Each run also records the
+  command's own duration as `commandMs`. Stacktape's default web service (an HTTP API in front of the container, with
+  no health check) serves the new code after about 40 seconds, but `stacktape deploy` exits only after about 185
+  seconds, when ECS has finished the rolling deployment (median `commandMs`: 184.5 s for `container-node`, 194.2 s for
+  `container-python`, 203.1 s for `five-services`). SST does the opposite: `sst deploy` starts the ECS update and
+  exits after about 8 seconds, before the new task serves.
+- **Stacktape's shared change on `lambda-5` and `lambda-25`** goes through a CloudFormation update. A change to the
+  shared package changes Stacktape's shared chunk layer, which its direct code update does not handle yet, so these
+  runs take 30–38 seconds instead of about 10.
+- **SST's failed runs** happened between 14:56 and 14:58 UTC, when the machine's `/tmp` was full. SST's Pulumi engine
+  leaves a 22 MB `pulumi-asset-*` file in `/tmp` on every deploy, and we deleted the old files during the run.
+  The runs are kept, and make-up runs brought each series to 10.
+- **Render's failed run** on `five-services`: the `webhooks` service returned HTTP 404 during the first run, about ten
+  minutes after the service had been recreated.
+- **Render deployed from a second copy of the fork.** Render's GitHub app had no access to our fork, so the Render
+  services deployed the same branches and commits from another repository the app could see.
+
+### Changes during the run
+
+The harness was fixed three times while the series ran. Runs that a harness bug made wrong are not deleted: they are
+in [`results/superseded.jsonl`](results/superseded.jsonl), each with the reason in `superseded`, and a make-up run or
+rerun replaced each of them.
+
+- **CDK's warm upload size** counted the asset directories of earlier synths left in `cdk.out` (61 MB instead of
+  9.4 MB for `lambda-1`). Fixed in `3bde156`; the CDK warm packaging series was rerun (30 runs).
+- **The business check** called each service once and could reach an old task during a rolling update. Fixed in
+  `7e9ce35`, which gives a changed service up to a minute to answer from the new revision; the clock was not changed.
+  21 SST and Render runs before the fix failed only this check.
+- **Git push order:** the harness could push while the previous GitHub Actions deploy was still waiting for ECS, so
+  CDK's next workflow found its stack in `UPDATE_IN_PROGRESS` and timed out. Fixed in `954bfb4`, which waits for the
+  branch's previous workflow; two CDK container runs are superseded.
+
+<details>
+<summary>Full output of <code>node report.mjs --markdown</code></summary>
+
+**Lambda packaging time and upload size**
+
+| series | runs | failed | seconds: median (min–max) | MB: median (min–max) |
+| --- | --- | --- | --- | --- |
+| lambda-1 cdk clean | 10 | 0 | 3.0 (2.9–3.3) | 9.40 (9.40–9.40) |
+| lambda-1 cdk warm | 10 | 0 | 3.0 (2.9–3.0) | 9.40 (9.40–9.40) |
+| lambda-1 serverless clean | 10 | 0 | 5.2 (5.0–5.5) | 16.54 (16.54–16.54) |
+| lambda-1 serverless warm | 10 | 0 | 5.1 (5.0–5.3) | 16.54 (16.54–16.54) |
+| lambda-1 sst clean | 10 | 0 | 6.3 (6.2–6.5) | 33.67 (33.67–33.67) |
+| lambda-1 sst warm | 10 | 0 | 6.4 (6.2–6.5) | 33.67 (33.67–33.67) |
+| lambda-1 stacktape clean | 10 | 0 | 1.7 (1.7–1.7) | 6.64 (6.64–6.64) |
+| lambda-1 stacktape warm | 10 | 0 | 1.7 (1.7–1.7) | 6.64 (6.64–6.64) |
+| lambda-25 cdk clean | 10 | 0 | 11.4 (11.3–11.5) | 68.12 (68.12–68.12) |
+| lambda-25 cdk warm | 10 | 0 | 11.4 (11.3–11.6) | 68.13 (68.13–68.13) |
+| lambda-25 serverless clean | 10 | 0 | 19.5 (19.2–19.8) | 361.80 (361.80–361.80) |
+| lambda-25 serverless warm | 10 | 0 | 19.6 (19.3–20.4) | 361.80 (361.80–361.80) |
+| lambda-25 sst clean | 10 | 0 | 14.0 (13.7–14.3) | 515.47 (515.47–515.47) |
+| lambda-25 sst warm | 10 | 0 | 14.7 (14.4–15.0) | 515.48 (515.48–515.48) |
+| lambda-25 stacktape clean | 10 | 0 | 3.2 (3.1–3.2) | 6.73 (6.73–6.73) |
+| lambda-25 stacktape warm | 10 | 0 | 3.2 (3.1–3.3) | 6.73 (6.73–6.73) |
+| lambda-5 cdk clean | 10 | 0 | 4.4 (4.3–4.5) | 19.33 (19.33–19.33) |
+| lambda-5 cdk warm | 10 | 0 | 4.4 (4.3–4.4) | 19.33 (19.33–19.33) |
+| lambda-5 serverless clean | 10 | 0 | 7.0 (6.9–7.2) | 74.61 (74.61–74.61) |
+| lambda-5 serverless warm | 10 | 0 | 7.0 (6.9–7.2) | 74.61 (74.61–74.61) |
+| lambda-5 sst clean | 10 | 0 | 7.6 (7.5–8.0) | 115.81 (115.81–115.81) |
+| lambda-5 sst warm | 10 | 0 | 7.8 (7.6–8.1) | 115.81 (115.81–115.81) |
+| lambda-5 stacktape clean | 10 | 0 | 1.9 (1.8–1.9) | 6.71 (6.71–6.71) |
+| lambda-5 stacktape warm | 10 | 0 | 1.9 (1.8–1.9) | 6.71 (6.71–6.71) |
+
+**Container image size**
+
+| series | runs | MB: median (min–max) |
+| --- | --- | --- |
+| container-node cdk | 1 | 86.60 (86.60–86.60) |
+| container-node sst | 1 | 86.60 (86.60–86.60) |
+| container-node stacktape | 1 | 63.35 (63.35–63.35) |
+| container-python cdk | 1 | 54.69 (54.69–54.69) |
+| container-python sst | 1 | 54.69 (54.69–54.69) |
+| container-python stacktape | 1 | 53.44 (53.44–53.44) |
+
+**Time from deploy start (or git push return) until the new code serves**
+
+| series | runs | excluded | seconds: median (min–max) |
+| --- | --- | --- | --- |
+| container-node cdk cli handlers | 10 | 0 | 68.1 (60.0–78.1) |
+| container-node cdk git-cold handlers | 10 | 0 | 108.1 (100.1–119.1) |
+| container-node cdk git-warm handlers | 10 | 0 | 109.6 (97.0–122.1) |
+| container-node cdk-hotswap cli handlers | 10 | 0 | 49.5 (36.0–64.1) |
+| container-node heroku cli handlers | 10 | 0 | 28.0 (25.0–30.1) |
+| container-node heroku git-cold handlers | 10 | 0 | 37.5 (34.0–42.0) |
+| container-node heroku git-warm handlers | 10 | 0 | 37.0 (33.0–76.1) |
+| container-node render git-cold handlers | 12 | 0 | 34.1 (28.1–116.1) |
+| container-node render git-warm handlers | 10 | 0 | 39.6 (31.1–70.1) |
+| container-node sst cli handlers | 10 | 0 | 138.6 (49.0–168.1) |
+| container-node sst git-cold handlers | 10 | 0 | 417.2 (93.1–424.2) |
+| container-node sst git-warm handlers | 10 | 0 | 97.5 (86.0–116.1) |
+| container-node stacktape cli handlers | 10 | 0 | 40.1 (32.1–50.1) |
+| container-python cdk cli handlers | 10 | 0 | 66.1 (61.0–85.1) |
+| container-python cdk git-cold handlers | 10 | 0 | 101.1 (94.0–106.1) |
+| container-python cdk git-warm handlers | 10 | 0 | 105.1 (96.0–116.1) |
+| container-python cdk-hotswap cli handlers | 10 | 0 | 40.5 (36.0–58.1) |
+| container-python heroku cli handlers | 10 | 0 | 21.6 (19.1–47.1) |
+| container-python heroku git-cold handlers | 10 | 0 | 33.6 (29.1–38.1) |
+| container-python heroku git-warm handlers | 10 | 0 | 29.0 (27.0–34.0) |
+| container-python render git-cold handlers | 11 | 0 | 54.1 (45.1–74.1) |
+| container-python render git-warm handlers | 11 | 0 | 55.1 (36.1–88.1) |
+| container-python sst cli handlers | 11 | 1 | 96.6 (44.0–428.2) |
+| container-python sst git-cold handlers | 10 | 0 | 410.7 (83.1–430.2) |
+| container-python sst git-warm handlers | 10 | 0 | 96.1 (86.0–115.1) |
+| container-python stacktape cli handlers | 10 | 0 | 47.6 (39.1–65.1) |
+| five-services cdk cli handlers | 10 | 0 | 77.6 (72.1–86.1) |
+| five-services cdk git-cold handlers | 10 | 0 | 117.0 (111.0–126.0) |
+| five-services cdk git-warm handlers | 10 | 0 | 112.1 (100.0–130.0) |
+| five-services cdk-hotswap cli handlers | 10 | 0 | 54.5 (46.0–58.0) |
+| five-services heroku cli handlers | 10 | 0 | 30.5 (28.0–64.1) |
+| five-services render git-cold handlers | 11 | 1 | 37.6 (33.1–120.1) |
+| five-services render git-warm handlers | 10 | 0 | 38.6 (34.1–85.1) |
+| five-services sst cli handlers | 11 | 1 | 73.0 (54.0–408.2) |
+| five-services sst git-cold handlers | 10 | 0 | 273.1 (125.1–414.2) |
+| five-services sst git-warm handlers | 10 | 0 | 115.0 (106.0–134.1) |
+| five-services stacktape cli handlers | 10 | 0 | 57.6 (38.1–63.1) |
+| lambda-1 cdk cli handlers | 10 | 0 | 20.7 (20.3–22.1) |
+| lambda-1 cdk cli shared | 10 | 0 | 20.8 (20.2–21.3) |
+| lambda-1 cdk git-cold handlers | 10 | 0 | 58.9 (53.7–66.1) |
+| lambda-1 cdk git-warm handlers | 10 | 0 | 55.5 (49.9–63.4) |
+| lambda-1 cdk-hotswap cli handlers | 10 | 0 | 11.4 (10.9–12.7) |
+| lambda-1 cdk-hotswap cli shared | 10 | 0 | 11.6 (11.4–12.4) |
+| lambda-1 serverless cli handlers | 10 | 0 | 19.8 (18.5–21.3) |
+| lambda-1 serverless cli shared | 10 | 0 | 19.7 (19.2–20.6) |
+| lambda-1 serverless git-cold handlers | 10 | 0 | 57.4 (47.1–61.5) |
+| lambda-1 serverless git-warm handlers | 10 | 0 | 55.4 (47.2–60.9) |
+| lambda-1 sst cli handlers | 10 | 0 | 13.8 (13.3–20.3) |
+| lambda-1 sst cli shared | 12 | 2 | 13.6 (13.0–16.7) |
+| lambda-1 sst git-cold handlers | 10 | 0 | 57.2 (49.8–64.3) |
+| lambda-1 sst git-warm handlers | 10 | 0 | 58.1 (48.5–65.4) |
+| lambda-1 stacktape cli handlers | 10 | 0 | 9.5 (8.8–11.1) |
+| lambda-1 stacktape cli shared | 10 | 0 | 9.5 (9.1–9.9) |
+| lambda-25 cdk cli handlers | 10 | 0 | 58.7 (38.9–66.9) |
+| lambda-25 cdk cli shared | 10 | 0 | 58.4 (38.6–68.6) |
+| lambda-25 cdk git-cold handlers | 10 | 0 | 102.8 (82.3–165.2) |
+| lambda-25 cdk git-warm handlers | 10 | 0 | 105.0 (68.2–134.7) |
+| lambda-25 cdk-hotswap cli handlers | 10 | 0 | 27.1 (26.0–28.4) |
+| lambda-25 cdk-hotswap cli shared | 10 | 0 | 25.8 (24.8–27.9) |
+| lambda-25 serverless cli handlers | 10 | 0 | 48.0 (45.9–66.3) |
+| lambda-25 serverless cli shared | 10 | 0 | 46.7 (43.3–50.6) |
+| lambda-25 serverless git-cold handlers | 10 | 0 | 127.8 (109.6–219.4) |
+| lambda-25 serverless git-warm handlers | 10 | 0 | 118.4 (110.3–139.9) |
+| lambda-25 sst cli handlers | 10 | 0 | 32.2 (25.4–33.3) |
+| lambda-25 sst cli shared | 10 | 0 | 31.7 (29.3–33.2) |
+| lambda-25 sst git-cold handlers | 10 | 0 | 72.0 (58.9–86.1) |
+| lambda-25 sst git-warm handlers | 10 | 0 | 75.4 (62.7–84.4) |
+| lambda-25 stacktape cli handlers | 10 | 0 | 11.9 (10.5–12.3) |
+| lambda-25 stacktape cli shared | 10 | 0 | 37.7 (34.3–114.4) |
+| lambda-5 cdk cli handlers | 10 | 0 | 22.4 (22.1–23.7) |
+| lambda-5 cdk cli shared | 10 | 0 | 22.6 (22.2–23.5) |
+| lambda-5 cdk git-cold handlers | 10 | 0 | 59.9 (51.9–69.0) |
+| lambda-5 cdk git-warm handlers | 10 | 0 | 59.8 (49.9–69.8) |
+| lambda-5 cdk-hotswap cli handlers | 10 | 0 | 13.4 (12.7–14.5) |
+| lambda-5 cdk-hotswap cli shared | 10 | 0 | 13.2 (12.8–13.5) |
+| lambda-5 serverless cli handlers | 10 | 0 | 23.1 (22.6–24.7) |
+| lambda-5 serverless cli shared | 10 | 0 | 23.1 (22.3–108.2) |
+| lambda-5 serverless git-cold handlers | 10 | 0 | 65.0 (58.0–93.7) |
+| lambda-5 serverless git-warm handlers | 10 | 0 | 64.4 (55.6–99.4) |
+| lambda-5 sst cli handlers | 10 | 0 | 14.9 (14.1–15.2) |
+| lambda-5 sst cli shared | 10 | 0 | 14.8 (14.5–15.8) |
+| lambda-5 sst git-cold handlers | 10 | 0 | 59.2 (53.9–63.4) |
+| lambda-5 sst git-warm handlers | 10 | 0 | 60.4 (45.3–66.6) |
+| lambda-5 stacktape cli handlers | 10 | 0 | 9.8 (7.2–10.5) |
+| lambda-5 stacktape cli shared | 10 | 0 | 29.9 (28.9–31.1) |
+- Excluded: lambda-1 sst cli shared run 1 (failed: Stopped waiting: the deploy command failed); log logs/bmk-sst-lambda-1-deploy-2026-10-17T14-56-45-510Z.log
+- Excluded: five-services sst cli handlers run 1 (failed: Stopped waiting: the deploy command failed); log logs/bmk-sst-five-services-deploy-2026-10-17T14-57-54-158Z.log
+- Excluded: container-python sst cli handlers run 1 (failed: Stopped waiting: the deploy command failed); log logs/bmk-sst-container-python-deploy-2026-10-17T14-57-56-426Z.log
+- Excluded: lambda-1 sst cli shared run 1 (failed: Stopped waiting: the deploy command failed); log logs/bmk-sst-lambda-1-deploy-2026-10-17T14-58-12-043Z.log
+- Excluded: five-services render git-cold handlers run 1 (failed: webhooks: HTTP 404); log logs/bmk-render-five-services-push-2026-10-17T15-00-22-358Z.log
+
+</details>
 
 ## Test branches
 

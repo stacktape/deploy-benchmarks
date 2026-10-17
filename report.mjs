@@ -62,5 +62,5 @@ table('Time from deploy start (or git push return) until the new code serves', d
 ]);
 for (const r of deploys.filter((r) => !ok(r))) {
   const why = r.failed ? `failed: ${r.error}` : `business check ${r.businessOk ? 'passed' : 'failed'}, unchanged targets ${r.unchangedOk ? 'kept' : 'changed'}`;
-  console.log(`Excluded: ${r.app} ${r.tool} ${r.journey} ${r.change} run ${r.run} (${why}); log ${r.log}`);
+  console.log(`${markdown ? '- ' : ''}Excluded: ${r.app} ${r.tool} ${r.journey} ${r.change} run ${r.run} (${why}); log ${r.log}`);
 }
