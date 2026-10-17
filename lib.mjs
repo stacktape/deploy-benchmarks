@@ -175,7 +175,9 @@ export async function call(app, target, address, { business = false } = {}) {
   }
   const probe = business ? app.services[target].businessProbe : app.services[target].versionProbe;
   let body = probe.body && { ...probe.body };
-  if (body?.jobId) body.jobId = `job-${Date.now()}`;
+  // A fresh job ID for every call, so a service that remembers jobs does real work each time. It keeps the fixture's
+  // ID as its prefix, which businessOk checks.
+  if (body?.jobId) body.jobId = `${probe.body.jobId}-${Date.now()}`;
   if (probe.sign) body[probe.sign] = createHmac('sha256', 'fixture-only-not-a-secret').update(body.payload).digest('hex');
   const response = await fetch(new URL(probe.path, address), {
     method: probe.method,
@@ -189,9 +191,11 @@ export async function call(app, target, address, { business = false } = {}) {
 
 /** Checks a response against the fixture's expected business result. Arrays must match in length and order. */
 export function businessOk(app, target, response) {
-  const expected = app.kind === 'lambda'
+  const expected = { ...(app.kind === 'lambda'
     ? manifest.lambda.functions.find((f) => f.name === target).probe.expected
-    : app.services[target].businessProbe.expected;
+    : app.services[target].businessProbe.expected) };
+  // `call` sends a fresh job ID that starts with the fixture's.
+  if (typeof expected.jobId === 'string' && response?.jobId?.startsWith(`${expected.jobId}-`)) expected.jobId = response.jobId;
   const contains = (actual, want) =>
     Array.isArray(want)
       ? Array.isArray(actual) && actual.length === want.length && want.every((v, i) => contains(actual[i], v))
