@@ -1,0 +1,33 @@
+{
+  "projectName": "bmk-stacktape-container-node",
+  "resources": {
+    "api": {
+      "type": "web-service",
+      "properties": {
+        "codeSwap": true,
+        "packaging": {
+          "type": "js-bundle",
+          "properties": {
+            "entryfilePath": "server.mjs"
+          }
+        },
+        "resources": {
+          "cpu": 0.25,
+          "memory": 512
+        },
+        "scaling": {
+          "minInstances": 1,
+          "maxInstances": 1
+        }
+      }
+    }
+  },
+  "stackConfig": {
+    "outputs": [
+      {
+        "name": "apiUrl",
+        "value": "$ResourceParam('api', 'url')"
+      }
+    ]
+  }
+}
