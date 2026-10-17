@@ -1,8 +1,11 @@
 // Prints median, minimum and maximum of every series in results/*.jsonl.
-//   node report.mjs
+//   node report.mjs              aligned text
+//   node report.mjs --markdown   Markdown tables, as in README.md
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { APPS, ROOT } from './lib.mjs';
+
+const markdown = process.argv.includes('--markdown');
 
 const load = (file) =>
   existsSync(join(ROOT, 'results', file))
@@ -25,9 +28,14 @@ function table(title, rows, key, columns) {
     if (!groups.has(id)) groups.set(id, []);
     groups.get(id).push(row);
   }
-  console.log(`\n${title}\n`);
   const lines = [...groups].sort(([a], [b]) => a.localeCompare(b)).map(([id, group]) => [id, `${group.length}`, ...columns.map(([, c]) => c(group))]);
   const header = ['series', 'runs', ...columns.map(([heading]) => heading)];
+  if (markdown) {
+    console.log(`\n**${title}**\n`);
+    for (const line of [header, header.map(() => '---'), ...lines]) console.log(`| ${line.join(' | ')} |`);
+    return;
+  }
+  console.log(`\n${title}\n`);
   const widths = header.map((h, i) => Math.max(h.length, ...lines.map((l) => l[i].length)));
   for (const line of [header, ...lines]) console.log(line.map((cell, i) => cell.padEnd(widths[i])).join('  '));
 }
