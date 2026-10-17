@@ -133,7 +133,8 @@ export function stackOutputs(stackName) {
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const lambda = new LambdaClient({ region: REGION });
+// Several series run at once, so Lambda's API can throttle listing and invoking; retry with backoff instead of failing.
+const lambda = new LambdaClient({ region: REGION, maxAttempts: 10, retryMode: 'adaptive' });
 
 /** Names of the deployed functions that start with `prefix`. */
 export async function functionNames(prefix) {
