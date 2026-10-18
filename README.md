@@ -673,6 +673,7 @@ them from the tool modules in [`tools/`](tools).
 
 ### Ravion
 
+- The Ravion infrastructure was deleted on 18 Oct 2026 and must be recreated before measuring.
 - [`tools/ravion.mjs`](tools/ravion.mjs). Ravion's configuration lives in the Ravion project, not in the test branch.
   Railpack detects the runtime, dependencies and start command from the source.
 - Ravion deploys only from a Git repository, so it has no laptop deploy. Build time and image size come from the
