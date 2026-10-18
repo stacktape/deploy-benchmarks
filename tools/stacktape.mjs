@@ -161,7 +161,8 @@ export default {
       )
     ];
   },
-  // Code-only changes are updated directly (without CloudFormation) by the default deploy.
+  // The default deploy handles handler-only, shared-only and mixed handler/helper edits.
+  // Measure the normal mixed edit with --change mixed as well as the two isolated changes.
   deploy: (ctx) => [bin(ctx), 'deploy', ...common, ...projectArgs(ctx), ...account(ctx), '--autoConfirmOperation'],
   remove: (ctx) => [bin(ctx), 'delete', ...common, ...projectArgs(ctx), ...account(ctx), '--autoConfirmOperation'],
   buildInfo: (ctx) => runnerTimings(ctx),

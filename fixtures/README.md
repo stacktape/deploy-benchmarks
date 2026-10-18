@@ -110,7 +110,8 @@ Excel workbook and a Word document (both `PK`, as ZIP-based formats), each large
 
 **Revisions.** Every handler has a revision file (`create-order.revision.ts`) and reports its value as `revision`.
 `packages/service/src/orders.ts` has `serviceRevision`, which every response also reports. The standard change edits
-each handler's revision file. The shared change (`--change shared`) edits only `orders.ts`, which every function
+each handler's revision file. The mixed change (`--change mixed`) edits both every handler revision and `orders.ts`.
+The shared change (`--change shared`) edits only `orders.ts`, which every function
 imports, so every function must be rebuilt and redeployed.
 
 ## One-container applications

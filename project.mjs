@@ -177,7 +177,7 @@ export function readme(t) {
         ...(does.package ? [[`node bench.mjs package ${toolName} ${appId} --runs 10`, app.kind === 'lambda' ? 'package from an empty build cache' : 'record the image size']] : []),
         ...(does.package && app.kind === 'lambda' ? [[`node bench.mjs package ${toolName} ${appId} --runs 10 --warm`, 'package after a source change']] : []),
         [`node bench.mjs deploy  ${toolName} ${appId} --runs 10`, 'deploy a code change from this machine'],
-        ...(app.kind === 'lambda' ? [[`node bench.mjs deploy  ${toolName} ${appId} --runs 10 --change shared`, 'change the shared service package instead']] : []),
+        ...(app.kind === 'lambda' ? [[`node bench.mjs deploy  ${toolName} ${appId} --runs 10 --change shared`, 'change the shared service package instead'], [`node bench.mjs deploy  ${toolName} ${appId} --runs 10 --change mixed`, 'change handlers and their shared helper together']] : []),
         ['node report.mjs', 'median, fastest and slowest run'],
         [`node bench.mjs remove  ${toolName} ${appId}`, 'delete everything setup created']
       ]),

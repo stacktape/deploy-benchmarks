@@ -546,7 +546,8 @@ writes a new revision string into the revision file of every changed function or
 applications contains the revision of the code that produced it. All tools get the same change. The shared change
 (`--change shared`) instead edits `serviceRevision` in
 [`packages/service/src/orders.ts`](fixtures/lambdas/packages/service/src/orders.ts), which every Lambda response
-reports.
+reports. `--change mixed` edits that helper and every handler revision together. Its business check requires both
+revisions to match.
 
 **When a deploy counts as done.** The clock starts when the deploy command starts. For a Git push, it starts when
 `git push` returns. The clock stops when every changed function or service has returned the new revision. Functions

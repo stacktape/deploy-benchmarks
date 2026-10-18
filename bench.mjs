@@ -5,7 +5,7 @@
 //                                                            cache; for a container, record only the image size
 //   node bench.mjs deploy  <tool> <app> [--runs 5]           deploy a code change from this machine
 //   node bench.mjs push    <tool> <app> [--runs 5]           push a code change: cold, then warm 15 minutes later
-//   deploy and push take --change shared to change the shared service package (packages/service/src/orders.ts) instead of each handler (Lambda apps)
+//   deploy and push take --change shared or --change mixed to edit the shared service package alone or together with handlers (Lambda apps)
 //   node bench.mjs remove  <tool> <app>                      delete what setup created
 import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -181,7 +181,7 @@ async function timedChange({ journey, push, deploy }) {
       for (let attempt = 1; ; attempt++) {
         const response = await call(app, t, addresses[t], { business: true });
         const right = businessOk(app, t, response);
-        const current = expected[t] === undefined || response[change.field] === expected[t];
+        const current = (expected[t] === undefined || response[change.field] === expected[t]) && (change.kind !== 'mixed' || response.serviceRevision === revision);
         if (!right || current || !change.targets.includes(t) || app.kind === 'lambda' || attempt === 60) return right && current;
         await sleep(1000);
       }

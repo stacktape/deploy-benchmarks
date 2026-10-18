@@ -64,9 +64,14 @@ export function copyAppSource(app, dir) {
 /**
  * The code change a deploy run makes. `handlers` (the default) edits the revision file of each changed function or
  * service; responses report it as `revision`. `shared` edits a module of the Lambda backend's shared service package,
- * which every function imports; responses report it as `serviceRevision`.
+ * which every function imports; responses report it as `serviceRevision`. `mixed` edits both that module and every handler revision.
  */
 export function describeChange(app, kind = 'handlers') {
+  if (!['handlers', 'shared', 'mixed'].includes(kind)) throw new Error(`Unknown change: ${kind}`);
+  if (kind === 'mixed') {
+    if (app.kind !== 'lambda') throw new Error('The mixed change applies to the Lambda apps');
+    return { kind, targets: app.functions, field: 'revision', file: (target) => join('packages/functions/src/handlers', `${target}.revision.ts`), sharedFile: manifest.lambda.sharedChange.file };
+  }
   if (kind === 'shared') {
     if (app.kind !== 'lambda') throw new Error('The shared change applies to the Lambda apps');
     return { kind, targets: app.functions, field: 'serviceRevision', file: () => manifest.lambda.sharedChange.file };
@@ -83,7 +88,7 @@ export const readRevision = (dir, file) => readFileSync(join(dir, file), 'utf8')
 
 /** Writes a new revision string into each file the change touches. */
 export function editSource(dir, change, revision) {
-  for (const file of new Set(change.targets.map(change.file))) {
+  for (const file of new Set([...change.targets.map(change.file), ...(change.sharedFile ? [change.sharedFile] : [])])) {
     const path = join(dir, file);
     writeFileSync(path, readFileSync(path, 'utf8').replace(REVISION, `$1${revision}'`));
   }
