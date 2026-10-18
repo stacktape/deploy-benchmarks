@@ -71,14 +71,15 @@ can change before then.
 - **Raw data:** every run is in [`results/`](results). `node report.mjs` prints every series; its full output is at
   the end of this section.
 
-Every cell is the median of at least 10 runs, with the fastest and slowest run in brackets. Times are in seconds.
+Unless a cell gives `n`, it is the median of at least 10 runs, with the fastest and slowest run in brackets.
+Stacktape Git-push samples have smaller counts, shown explicitly below. Times are in seconds.
 **Bold** is the fastest or smallest in its row. A blank cell means the tool has no such test (see
 [What we measured](#what-we-measured)). `[n failed]` counts runs that failed and are left out of the median.
 
 **Not measured yet:**
 
-- **Stacktape Git push** is pending. The Stacktape Console runner installs the CLI from npm, and the measured commit is
-  not published, so this test runs separately with a published version.
+- **Stacktape Git push** remains unmeasured for `lambda-1`, `container-python` and `five-services`. The three
+  measured apps use a separate source-built CLI and test runner image, as described below.
 - **Ravion** is pending: our Ravion account needs a setup step from its owner.
 - **Ravion five-services** is blocked by a Ravion bug: its EC2 builder applies `source_base_path` twice (see
   [Ravion](#ravion)).
@@ -138,9 +139,9 @@ Every cell is the median of at least 10 runs, with the fastest and slowest run i
 | App | Stacktape | Serverless | SST | AWS CDK | Render | Heroku | Ravion |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `lambda-1` | pending | 57.4 (47.1–61.5) | **57.2 (49.8–64.3)** | 58.9 (53.7–66.1) |  |  |  |
-| `lambda-5` | pending | 65.0 (58.0–93.7) | **59.2 (53.9–63.4)** | 59.9 (51.9–69.0) |  |  |  |
-| `lambda-25` | pending | 127.8 (109.6–219.4) | **72.0 (58.9–86.1)** | 102.8 (82.3–165.2) |  |  |  |
-| `container-node` | pending |  | 417.2 (93.1–424.2) | 108.1 (100.1–119.1) | **34.1 (28.1–116.1)** | 37.5 (34.0–42.0) | pending |
+| `lambda-5` | 226.9 (220.5–231.9), n=4 | 65.0 (58.0–93.7) | **59.2 (53.9–63.4)** | 59.9 (51.9–69.0) |  |  |  |
+| `lambda-25` | 220.7 (125.8–240.4), n=4 | 127.8 (109.6–219.4) | **72.0 (58.9–86.1)** | 102.8 (82.3–165.2) |  |  |  |
+| `container-node` | 254.2 (166.2–266.2), n=5 |  | 417.2 (93.1–424.2) | 108.1 (100.1–119.1) | **34.1 (28.1–116.1)** | 37.5 (34.0–42.0) | pending |
 | `container-python` | pending |  | 410.7 (83.1–430.2) | 101.1 (94.0–106.1) | 54.1 (45.1–74.1) | **33.6 (29.1–38.1)** | pending |
 | `five-services` | pending |  | 273.1 (125.1–414.2) | 117.0 (111.0–126.0) | **37.6 (33.1–120.1) [1 failed]** |  | blocked |
 
@@ -149,9 +150,9 @@ Every cell is the median of at least 10 runs, with the fastest and slowest run i
 | App | Stacktape | Serverless | SST | AWS CDK | Render | Heroku | Ravion |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `lambda-1` | pending | **55.4 (47.2–60.9)** | 58.1 (48.5–65.4) | 55.5 (49.9–63.4) |  |  |  |
-| `lambda-5` | pending | 64.4 (55.6–99.4) | 60.4 (45.3–66.6) | **59.8 (49.9–69.8)** |  |  |  |
-| `lambda-25` | pending | 118.4 (110.3–139.9) | **75.4 (62.7–84.4)** | 105.0 (68.2–134.7) |  |  |  |
-| `container-node` | pending |  | 97.5 (86.0–116.1) | 109.6 (97.0–122.1) | 39.6 (31.1–70.1) | **37.0 (33.0–76.1)** | pending |
+| `lambda-5` | **30.9 (30.4–35.2), n=3** | 64.4 (55.6–99.4) | 60.4 (45.3–66.6) | 59.8 (49.9–69.8) |  |  |  |
+| `lambda-25` | **33.2 (32.9–34.7), n=3** | 118.4 (110.3–139.9) | 75.4 (62.7–84.4) | 105.0 (68.2–134.7) |  |  |  |
+| `container-node` | 56.1 (50.1–60.1), n=4 |  | 97.5 (86.0–116.1) | 109.6 (97.0–122.1) | 39.6 (31.1–70.1) | **37.0 (33.0–76.1)** | pending |
 | `container-python` | pending |  | 96.1 (86.0–115.1) | 105.1 (96.0–116.1) | 55.1 (36.1–88.1) | **29.0 (27.0–34.0)** | pending |
 | `five-services` | pending |  | 115.0 (106.0–134.1) | 112.1 (100.0–130.0) | **38.6 (34.1–85.1)** |  | blocked |
 
@@ -173,6 +174,74 @@ Every cell is the median of at least 10 runs, with the fastest and slowest run i
   minutes after the service had been recreated.
 - **Render deployed from a second copy of the fork.** Render's GitHub app had no access to our fork, so the Render
   services deployed the same branches and commits from another repository the app could see.
+
+### Stacktape Git push runs
+
+These separate qualification samples ran on 17–18 October 2026 through the **dev Console**, with workloads in
+`eu-west-1`. They use CLI commit `16d16c8ed97e95c8129f684cbf143341da29bbf5`, version
+`4.0.0-bench.16d16c8e`, baked into test AMI `ami-01572ab71483bcc1e` (build `bmk-push-36c3460d`). No npm publication
+was needed. Other tools' numbers and the CLI-only Stacktape results above retain their original revisions and machines.
+The observer was WSL on an i7-13700K; builds ran on a `c7a.2xlarge` runner with a persistent cache disk in the
+connected AWS account, not on the observer or the other qualification run's `c7i.2xlarge`.
+
+A push to the project's connected GitHub branch triggers the Console runner. **Cold** means its instance, cache disk
+and database runner record were removed before the push. **Warm** is the paired push 15 minutes after readiness;
+the logs confirm that every included warm sample reused a **running** instance. The idle timer starts after the job
+finishes, which can be much later than readiness for containers. The separate **resume** samples waited for the
+runner to become stopped through idle hibernation before pushing; they reuse its disk and caches.
+
+Only rows with `at >= 2026-10-17T22:00Z` count. Rounds 1–10 used a WSL monotonic clock that ran approximately 9% fast,
+inflating elapsed readiness by roughly 12–22 seconds on cold pushes. All 60 rows remain in
+[`results/deploy-stacktape-push.jsonl`](results/deploy-stacktape-push.jsonl), marked with an `excluded` reason, and
+are omitted from medians and phase summaries. The surviving rerun stopped before reaching ten samples; it contains
+4 cold/3 warm Lambda samples per app and 5 cold/4 warm container samples. No additional rounds were collected.
+
+**Stacktape Git push: seconds until new code serves, median (min–max), valid n**
+
+| App | Cold | Warm, still running | Resume after hibernation |
+| --- | --- | --- | --- |
+| `lambda-5` | 226.9 (220.5–231.9), n=4 | 30.9 (30.4–35.2), n=3 | 50.3 (48.4–51.7), n=3 |
+| `lambda-25` | 220.7 (125.8–240.4), n=4 | 33.2 (32.9–34.7), n=3 | 53.9 (51.2–54.9), n=3 |
+| `container-node` | 254.2 (166.2–266.2), n=5 | 56.1 (50.1–60.1), n=4 | 85.1 (69.2–93.1), n=3 |
+
+The nine resume samples are preserved verbatim in
+[`results-extra/resume.jsonl`](results-extra/resume.jsonl). Their collector saved readiness and runner state,
+but did not persist the main harness's `businessOk`/`unchangedOk` flags; they are reported separately rather than
+silently treated as fully checked deploy rows. Cold and warm rows all passed those two checks.
+
+**Runner phase breakdown, cold samples: median seconds (min–max)**
+
+CloudWatch timestamps provide the phase boundaries, with about one-second log resolution. The last column combines
+the readiness observer with the runner timestamp. Medians of individual phases need not sum to the median total.
+
+| App | n | Push → Console queue | Queue → runner ready | Ready → job | Job → install | Install → CLI | CLI → serving |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `lambda-5` | 4 | 4.9 (3.7–15.3) | 173.5 (156.1–180.5) | 2.3 (2.2–2.3) | 21.0 (21.0–21.0) | 8.0 (8.0–8.0) | 17.4 (16.5–17.9) |
+| `lambda-25` | 4 | 7.2 (4.7–16.8) | 158.3 (64.4–185.2) | 2.2 (2.2–5.3) | 21.0 (21.0–23.0) | 8.0 (8.0–8.0) | 18.9 (18.5–19.4) |
+| `container-node` | 5 | 3.8 (3.6–8.9) | 157.7 (68.7–180.5) | 2.2 (1.9–2.2) | 21.0 (21.0–22.0) | 2.0 (2.0–2.0) | 51.6 (45.9–68.3) |
+
+Warm queue-to-ready medians are 0.5 s; hibernation-resume medians are about 19–21 s. Warm job-to-install is 3 s,
+versus 21 s cold. Lambda dependency installation takes 8 s cold and 5 s warm before the CLI starts. Cold CLI
+Build & Package medians are 3.2 s (`lambda-5`), 4.8 s (`lambda-25`) and 11.7 s (`container-node`); warm medians are
+1.9, 4.9 and 4.6 s. Container CLI completion takes about 207 s, although new code serves about 45–52 s after CLI start.
+That ECS settling time is not added to readiness.
+
+The largest optimization candidates, based on these samples and the earlier agents' log/code diagnosis, are:
+
+1. **Fix runner IAM propagation and SSM retry startup.** Eleven of the 13 valid cold samples took 161–190 s from
+   push to runner-ready, versus 71–72 s for the two fast samples. Earlier log diagnosis attributes about 95 s of the
+   slow path to a fresh instance profile reaching SSM late, backing off, and an instance restart. Avoiding that retry
+   is the largest cold-start opportunity; this is an estimate, not a measured optimized implementation.
+2. **Keep runner tools ready without loading unused images.** Cold job-to-install is 21 s versus 3 s warm. Earlier
+   diagnosis found a silent roughly 20 s `docker load` of the preseeded ~480 MB Railpack archive before checkout,
+   even for Lambda jobs. Lazy or image-ready tool preparation could recover roughly 18–20 s; checkout itself was ~1 s.
+3. **Remove the duplicate Lambda dependency install.** The runner installs dependencies, then the CLI's workspace
+   detection installs them again during Initialize (~6.8–7.3 s). Reusing the completed install could save roughly 6 s
+   per Lambda push. This needs implementation and fresh qualification before claiming a speedup.
+
+These are prerelease qualification figures. Before using them as launch claims, rerun with the published CLI and
+release runner image, verify the observer clock rate against AWS timestamps, and disclose actual running/stopped
+state at the 15-minute push. The temporary test image and projects are removed after this qualification.
 
 ### Changes during the run
 
@@ -234,98 +303,172 @@ rerun replaced each of them.
 
 **Time from deploy start (or git push return) until the new code serves**
 
-| series | runs | excluded | seconds: median (min–max) |
-| --- | --- | --- | --- |
-| container-node cdk cli handlers | 10 | 0 | 68.1 (60.0–78.1) |
-| container-node cdk git-cold handlers | 10 | 0 | 108.1 (100.1–119.1) |
-| container-node cdk git-warm handlers | 10 | 0 | 109.6 (97.0–122.1) |
-| container-node cdk-hotswap cli handlers | 10 | 0 | 49.5 (36.0–64.1) |
-| container-node heroku cli handlers | 10 | 0 | 28.0 (25.0–30.1) |
-| container-node heroku git-cold handlers | 10 | 0 | 37.5 (34.0–42.0) |
-| container-node heroku git-warm handlers | 10 | 0 | 37.0 (33.0–76.1) |
-| container-node render git-cold handlers | 12 | 0 | 34.1 (28.1–116.1) |
-| container-node render git-warm handlers | 10 | 0 | 39.6 (31.1–70.1) |
-| container-node sst cli handlers | 10 | 0 | 138.6 (49.0–168.1) |
-| container-node sst git-cold handlers | 10 | 0 | 417.2 (93.1–424.2) |
-| container-node sst git-warm handlers | 10 | 0 | 97.5 (86.0–116.1) |
-| container-node stacktape cli handlers | 10 | 0 | 40.1 (32.1–50.1) |
-| container-python cdk cli handlers | 10 | 0 | 66.1 (61.0–85.1) |
-| container-python cdk git-cold handlers | 10 | 0 | 101.1 (94.0–106.1) |
-| container-python cdk git-warm handlers | 10 | 0 | 105.1 (96.0–116.1) |
-| container-python cdk-hotswap cli handlers | 10 | 0 | 40.5 (36.0–58.1) |
-| container-python heroku cli handlers | 10 | 0 | 21.6 (19.1–47.1) |
-| container-python heroku git-cold handlers | 10 | 0 | 33.6 (29.1–38.1) |
-| container-python heroku git-warm handlers | 10 | 0 | 29.0 (27.0–34.0) |
-| container-python render git-cold handlers | 11 | 0 | 54.1 (45.1–74.1) |
-| container-python render git-warm handlers | 11 | 0 | 55.1 (36.1–88.1) |
-| container-python sst cli handlers | 11 | 1 | 96.6 (44.0–428.2) |
-| container-python sst git-cold handlers | 10 | 0 | 410.7 (83.1–430.2) |
-| container-python sst git-warm handlers | 10 | 0 | 96.1 (86.0–115.1) |
-| container-python stacktape cli handlers | 10 | 0 | 47.6 (39.1–65.1) |
-| five-services cdk cli handlers | 10 | 0 | 77.6 (72.1–86.1) |
-| five-services cdk git-cold handlers | 10 | 0 | 117.0 (111.0–126.0) |
-| five-services cdk git-warm handlers | 10 | 0 | 112.1 (100.0–130.0) |
-| five-services cdk-hotswap cli handlers | 10 | 0 | 54.5 (46.0–58.0) |
-| five-services heroku cli handlers | 10 | 0 | 30.5 (28.0–64.1) |
-| five-services render git-cold handlers | 11 | 1 | 37.6 (33.1–120.1) |
-| five-services render git-warm handlers | 10 | 0 | 38.6 (34.1–85.1) |
-| five-services sst cli handlers | 11 | 1 | 73.0 (54.0–408.2) |
-| five-services sst git-cold handlers | 10 | 0 | 273.1 (125.1–414.2) |
-| five-services sst git-warm handlers | 10 | 0 | 115.0 (106.0–134.1) |
-| five-services stacktape cli handlers | 10 | 0 | 57.6 (38.1–63.1) |
-| lambda-1 cdk cli handlers | 10 | 0 | 20.7 (20.3–22.1) |
-| lambda-1 cdk cli shared | 10 | 0 | 20.8 (20.2–21.3) |
-| lambda-1 cdk git-cold handlers | 10 | 0 | 58.9 (53.7–66.1) |
-| lambda-1 cdk git-warm handlers | 10 | 0 | 55.5 (49.9–63.4) |
-| lambda-1 cdk-hotswap cli handlers | 10 | 0 | 11.4 (10.9–12.7) |
-| lambda-1 cdk-hotswap cli shared | 10 | 0 | 11.6 (11.4–12.4) |
-| lambda-1 serverless cli handlers | 10 | 0 | 19.8 (18.5–21.3) |
-| lambda-1 serverless cli shared | 10 | 0 | 19.7 (19.2–20.6) |
-| lambda-1 serverless git-cold handlers | 10 | 0 | 57.4 (47.1–61.5) |
-| lambda-1 serverless git-warm handlers | 10 | 0 | 55.4 (47.2–60.9) |
-| lambda-1 sst cli handlers | 10 | 0 | 13.8 (13.3–20.3) |
-| lambda-1 sst cli shared | 12 | 2 | 13.6 (13.0–16.7) |
-| lambda-1 sst git-cold handlers | 10 | 0 | 57.2 (49.8–64.3) |
-| lambda-1 sst git-warm handlers | 10 | 0 | 58.1 (48.5–65.4) |
-| lambda-1 stacktape cli handlers | 10 | 0 | 9.5 (8.8–11.1) |
-| lambda-1 stacktape cli shared | 10 | 0 | 9.5 (9.1–9.9) |
-| lambda-25 cdk cli handlers | 10 | 0 | 58.7 (38.9–66.9) |
-| lambda-25 cdk cli shared | 10 | 0 | 58.4 (38.6–68.6) |
-| lambda-25 cdk git-cold handlers | 10 | 0 | 102.8 (82.3–165.2) |
-| lambda-25 cdk git-warm handlers | 10 | 0 | 105.0 (68.2–134.7) |
-| lambda-25 cdk-hotswap cli handlers | 10 | 0 | 27.1 (26.0–28.4) |
-| lambda-25 cdk-hotswap cli shared | 10 | 0 | 25.8 (24.8–27.9) |
-| lambda-25 serverless cli handlers | 10 | 0 | 48.0 (45.9–66.3) |
-| lambda-25 serverless cli shared | 10 | 0 | 46.7 (43.3–50.6) |
-| lambda-25 serverless git-cold handlers | 10 | 0 | 127.8 (109.6–219.4) |
-| lambda-25 serverless git-warm handlers | 10 | 0 | 118.4 (110.3–139.9) |
-| lambda-25 sst cli handlers | 10 | 0 | 32.2 (25.4–33.3) |
-| lambda-25 sst cli shared | 10 | 0 | 31.7 (29.3–33.2) |
-| lambda-25 sst git-cold handlers | 10 | 0 | 72.0 (58.9–86.1) |
-| lambda-25 sst git-warm handlers | 10 | 0 | 75.4 (62.7–84.4) |
-| lambda-25 stacktape cli handlers | 10 | 0 | 11.9 (10.5–12.3) |
-| lambda-25 stacktape cli shared | 10 | 0 | 37.7 (34.3–114.4) |
-| lambda-5 cdk cli handlers | 10 | 0 | 22.4 (22.1–23.7) |
-| lambda-5 cdk cli shared | 10 | 0 | 22.6 (22.2–23.5) |
-| lambda-5 cdk git-cold handlers | 10 | 0 | 59.9 (51.9–69.0) |
-| lambda-5 cdk git-warm handlers | 10 | 0 | 59.8 (49.9–69.8) |
-| lambda-5 cdk-hotswap cli handlers | 10 | 0 | 13.4 (12.7–14.5) |
-| lambda-5 cdk-hotswap cli shared | 10 | 0 | 13.2 (12.8–13.5) |
-| lambda-5 serverless cli handlers | 10 | 0 | 23.1 (22.6–24.7) |
-| lambda-5 serverless cli shared | 10 | 0 | 23.1 (22.3–108.2) |
-| lambda-5 serverless git-cold handlers | 10 | 0 | 65.0 (58.0–93.7) |
-| lambda-5 serverless git-warm handlers | 10 | 0 | 64.4 (55.6–99.4) |
-| lambda-5 sst cli handlers | 10 | 0 | 14.9 (14.1–15.2) |
-| lambda-5 sst cli shared | 10 | 0 | 14.8 (14.5–15.8) |
-| lambda-5 sst git-cold handlers | 10 | 0 | 59.2 (53.9–63.4) |
-| lambda-5 sst git-warm handlers | 10 | 0 | 60.4 (45.3–66.6) |
-| lambda-5 stacktape cli handlers | 10 | 0 | 9.8 (7.2–10.5) |
-| lambda-5 stacktape cli shared | 10 | 0 | 29.9 (28.9–31.1) |
+| series | runs | valid | excluded | seconds: median (min–max) |
+| --- | --- | --- | --- | --- |
+| container-node cdk cli handlers | 10 | 10 | 0 | 68.1 (60.0–78.1) |
+| container-node cdk git-cold handlers | 10 | 10 | 0 | 108.1 (100.1–119.1) |
+| container-node cdk git-warm handlers | 10 | 10 | 0 | 109.6 (97.0–122.1) |
+| container-node cdk-hotswap cli handlers | 10 | 10 | 0 | 49.5 (36.0–64.1) |
+| container-node heroku cli handlers | 10 | 10 | 0 | 28.0 (25.0–30.1) |
+| container-node heroku git-cold handlers | 10 | 10 | 0 | 37.5 (34.0–42.0) |
+| container-node heroku git-warm handlers | 10 | 10 | 0 | 37.0 (33.0–76.1) |
+| container-node render git-cold handlers | 12 | 12 | 0 | 34.1 (28.1–116.1) |
+| container-node render git-warm handlers | 10 | 10 | 0 | 39.6 (31.1–70.1) |
+| container-node sst cli handlers | 10 | 10 | 0 | 138.6 (49.0–168.1) |
+| container-node sst git-cold handlers | 10 | 10 | 0 | 417.2 (93.1–424.2) |
+| container-node sst git-warm handlers | 10 | 10 | 0 | 97.5 (86.0–116.1) |
+| container-node stacktape cli handlers | 10 | 10 | 0 | 40.1 (32.1–50.1) |
+| container-node stacktape git-cold handlers | 15 | 5 | 10 | 254.2 (166.2–266.2) |
+| container-node stacktape git-warm handlers | 14 | 4 | 10 | 56.1 (50.1–60.1) |
+| container-python cdk cli handlers | 10 | 10 | 0 | 66.1 (61.0–85.1) |
+| container-python cdk git-cold handlers | 10 | 10 | 0 | 101.1 (94.0–106.1) |
+| container-python cdk git-warm handlers | 10 | 10 | 0 | 105.1 (96.0–116.1) |
+| container-python cdk-hotswap cli handlers | 10 | 10 | 0 | 40.5 (36.0–58.1) |
+| container-python heroku cli handlers | 10 | 10 | 0 | 21.6 (19.1–47.1) |
+| container-python heroku git-cold handlers | 10 | 10 | 0 | 33.6 (29.1–38.1) |
+| container-python heroku git-warm handlers | 10 | 10 | 0 | 29.0 (27.0–34.0) |
+| container-python render git-cold handlers | 11 | 11 | 0 | 54.1 (45.1–74.1) |
+| container-python render git-warm handlers | 11 | 11 | 0 | 55.1 (36.1–88.1) |
+| container-python sst cli handlers | 11 | 10 | 1 | 96.6 (44.0–428.2) |
+| container-python sst git-cold handlers | 10 | 10 | 0 | 410.7 (83.1–430.2) |
+| container-python sst git-warm handlers | 10 | 10 | 0 | 96.1 (86.0–115.1) |
+| container-python stacktape cli handlers | 10 | 10 | 0 | 47.6 (39.1–65.1) |
+| five-services cdk cli handlers | 10 | 10 | 0 | 77.6 (72.1–86.1) |
+| five-services cdk git-cold handlers | 10 | 10 | 0 | 117.0 (111.0–126.0) |
+| five-services cdk git-warm handlers | 10 | 10 | 0 | 112.1 (100.0–130.0) |
+| five-services cdk-hotswap cli handlers | 10 | 10 | 0 | 54.5 (46.0–58.0) |
+| five-services heroku cli handlers | 10 | 10 | 0 | 30.5 (28.0–64.1) |
+| five-services render git-cold handlers | 11 | 10 | 1 | 37.6 (33.1–120.1) |
+| five-services render git-warm handlers | 10 | 10 | 0 | 38.6 (34.1–85.1) |
+| five-services sst cli handlers | 11 | 10 | 1 | 73.0 (54.0–408.2) |
+| five-services sst git-cold handlers | 10 | 10 | 0 | 273.1 (125.1–414.2) |
+| five-services sst git-warm handlers | 10 | 10 | 0 | 115.0 (106.0–134.1) |
+| five-services stacktape cli handlers | 10 | 10 | 0 | 57.6 (38.1–63.1) |
+| lambda-1 cdk cli handlers | 10 | 10 | 0 | 20.7 (20.3–22.1) |
+| lambda-1 cdk cli shared | 10 | 10 | 0 | 20.8 (20.2–21.3) |
+| lambda-1 cdk git-cold handlers | 10 | 10 | 0 | 58.9 (53.7–66.1) |
+| lambda-1 cdk git-warm handlers | 10 | 10 | 0 | 55.5 (49.9–63.4) |
+| lambda-1 cdk-hotswap cli handlers | 10 | 10 | 0 | 11.4 (10.9–12.7) |
+| lambda-1 cdk-hotswap cli shared | 10 | 10 | 0 | 11.6 (11.4–12.4) |
+| lambda-1 serverless cli handlers | 10 | 10 | 0 | 19.8 (18.5–21.3) |
+| lambda-1 serverless cli shared | 10 | 10 | 0 | 19.7 (19.2–20.6) |
+| lambda-1 serverless git-cold handlers | 10 | 10 | 0 | 57.4 (47.1–61.5) |
+| lambda-1 serverless git-warm handlers | 10 | 10 | 0 | 55.4 (47.2–60.9) |
+| lambda-1 sst cli handlers | 10 | 10 | 0 | 13.8 (13.3–20.3) |
+| lambda-1 sst cli shared | 12 | 10 | 2 | 13.6 (13.0–16.7) |
+| lambda-1 sst git-cold handlers | 10 | 10 | 0 | 57.2 (49.8–64.3) |
+| lambda-1 sst git-warm handlers | 10 | 10 | 0 | 58.1 (48.5–65.4) |
+| lambda-1 stacktape cli handlers | 10 | 10 | 0 | 9.5 (8.8–11.1) |
+| lambda-1 stacktape cli shared | 10 | 10 | 0 | 9.5 (9.1–9.9) |
+| lambda-25 cdk cli handlers | 10 | 10 | 0 | 58.7 (38.9–66.9) |
+| lambda-25 cdk cli shared | 10 | 10 | 0 | 58.4 (38.6–68.6) |
+| lambda-25 cdk git-cold handlers | 10 | 10 | 0 | 102.8 (82.3–165.2) |
+| lambda-25 cdk git-warm handlers | 10 | 10 | 0 | 105.0 (68.2–134.7) |
+| lambda-25 cdk-hotswap cli handlers | 10 | 10 | 0 | 27.1 (26.0–28.4) |
+| lambda-25 cdk-hotswap cli shared | 10 | 10 | 0 | 25.8 (24.8–27.9) |
+| lambda-25 serverless cli handlers | 10 | 10 | 0 | 48.0 (45.9–66.3) |
+| lambda-25 serverless cli shared | 10 | 10 | 0 | 46.7 (43.3–50.6) |
+| lambda-25 serverless git-cold handlers | 10 | 10 | 0 | 127.8 (109.6–219.4) |
+| lambda-25 serverless git-warm handlers | 10 | 10 | 0 | 118.4 (110.3–139.9) |
+| lambda-25 sst cli handlers | 10 | 10 | 0 | 32.2 (25.4–33.3) |
+| lambda-25 sst cli shared | 10 | 10 | 0 | 31.7 (29.3–33.2) |
+| lambda-25 sst git-cold handlers | 10 | 10 | 0 | 72.0 (58.9–86.1) |
+| lambda-25 sst git-warm handlers | 10 | 10 | 0 | 75.4 (62.7–84.4) |
+| lambda-25 stacktape cli handlers | 10 | 10 | 0 | 11.9 (10.5–12.3) |
+| lambda-25 stacktape cli shared | 10 | 10 | 0 | 37.7 (34.3–114.4) |
+| lambda-25 stacktape git-cold handlers | 14 | 4 | 10 | 220.7 (125.8–240.4) |
+| lambda-25 stacktape git-warm handlers | 13 | 3 | 10 | 33.2 (32.9–34.7) |
+| lambda-5 cdk cli handlers | 10 | 10 | 0 | 22.4 (22.1–23.7) |
+| lambda-5 cdk cli shared | 10 | 10 | 0 | 22.6 (22.2–23.5) |
+| lambda-5 cdk git-cold handlers | 10 | 10 | 0 | 59.9 (51.9–69.0) |
+| lambda-5 cdk git-warm handlers | 10 | 10 | 0 | 59.8 (49.9–69.8) |
+| lambda-5 cdk-hotswap cli handlers | 10 | 10 | 0 | 13.4 (12.7–14.5) |
+| lambda-5 cdk-hotswap cli shared | 10 | 10 | 0 | 13.2 (12.8–13.5) |
+| lambda-5 serverless cli handlers | 10 | 10 | 0 | 23.1 (22.6–24.7) |
+| lambda-5 serverless cli shared | 10 | 10 | 0 | 23.1 (22.3–108.2) |
+| lambda-5 serverless git-cold handlers | 10 | 10 | 0 | 65.0 (58.0–93.7) |
+| lambda-5 serverless git-warm handlers | 10 | 10 | 0 | 64.4 (55.6–99.4) |
+| lambda-5 sst cli handlers | 10 | 10 | 0 | 14.9 (14.1–15.2) |
+| lambda-5 sst cli shared | 10 | 10 | 0 | 14.8 (14.5–15.8) |
+| lambda-5 sst git-cold handlers | 10 | 10 | 0 | 59.2 (53.9–63.4) |
+| lambda-5 sst git-warm handlers | 10 | 10 | 0 | 60.4 (45.3–66.6) |
+| lambda-5 stacktape cli handlers | 10 | 10 | 0 | 9.8 (7.2–10.5) |
+| lambda-5 stacktape cli shared | 10 | 10 | 0 | 29.9 (28.9–31.1) |
+| lambda-5 stacktape git-cold handlers | 14 | 4 | 10 | 226.9 (220.5–231.9) |
+| lambda-5 stacktape git-warm handlers | 13 | 3 | 10 | 30.9 (30.4–35.2) |
+- Excluded: lambda-5 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T16-19-24-688Z.log
+- Excluded: lambda-25 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T16-19-24-683Z.log
+- Excluded: container-node stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T16-19-24-687Z.log
+- Excluded: lambda-5 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T16-19-24-688Z.log
+- Excluded: lambda-25 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T16-19-24-683Z.log
+- Excluded: container-node stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T16-19-24-687Z.log
+- Excluded: lambda-5 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T16-43-30-053Z.log
+- Excluded: lambda-25 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T16-43-30-057Z.log
+- Excluded: container-node stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T16-43-30-055Z.log
+- Excluded: lambda-5 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T16-43-30-053Z.log
+- Excluded: lambda-25 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T16-43-30-057Z.log
+- Excluded: container-node stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T16-43-30-055Z.log
+- Excluded: lambda-25 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T17-07-53-633Z.log
+- Excluded: lambda-5 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T17-07-53-633Z.log
+- Excluded: container-node stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T17-07-53-634Z.log
+- Excluded: lambda-5 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T17-07-53-633Z.log
+- Excluded: lambda-25 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T17-07-53-633Z.log
+- Excluded: container-node stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T17-07-53-634Z.log
+- Excluded: lambda-25 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T17-31-33-927Z.log
+- Excluded: lambda-5 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T17-31-33-937Z.log
+- Excluded: container-node stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T17-31-33-926Z.log
+- Excluded: lambda-25 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T17-31-33-927Z.log
+- Excluded: lambda-5 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T17-31-33-937Z.log
+- Excluded: container-node stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T17-31-33-926Z.log
+- Excluded: lambda-5 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T17-54-32-207Z.log
+- Excluded: lambda-25 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T17-54-32-208Z.log
+- Excluded: container-node stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T17-54-32-206Z.log
+- Excluded: lambda-5 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T17-54-32-207Z.log
+- Excluded: lambda-25 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T17-54-32-208Z.log
+- Excluded: container-node stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T17-54-32-206Z.log
+- Excluded: lambda-5 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T18-18-19-841Z.log
+- Excluded: lambda-25 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T18-18-19-849Z.log
+- Excluded: container-node stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T18-18-19-841Z.log
+- Excluded: lambda-25 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T18-18-19-849Z.log
+- Excluded: lambda-5 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T18-18-19-841Z.log
+- Excluded: container-node stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T18-18-19-841Z.log
+- Excluded: lambda-25 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T18-41-02-340Z.log
+- Excluded: lambda-5 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T18-41-02-340Z.log
+- Excluded: container-node stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T18-41-02-340Z.log
+- Excluded: lambda-5 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T18-41-02-340Z.log
+- Excluded: lambda-25 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T18-41-02-340Z.log
+- Excluded: container-node stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T18-41-02-340Z.log
+- Excluded: lambda-25 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T19-05-15-706Z.log
+- Excluded: lambda-5 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T19-05-15-705Z.log
+- Excluded: container-node stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T19-05-15-707Z.log
+- Excluded: lambda-25 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T19-05-15-706Z.log
+- Excluded: lambda-5 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T19-05-15-705Z.log
+- Excluded: container-node stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T19-05-15-707Z.log
+- Excluded: lambda-5 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T19-28-09-441Z.log
+- Excluded: lambda-25 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T19-28-09-435Z.log
+- Excluded: container-node stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T19-28-09-434Z.log
+- Excluded: lambda-5 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T19-28-09-441Z.log
+- Excluded: lambda-25 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T19-28-09-435Z.log
+- Excluded: container-node stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T19-28-09-434Z.log
+- Excluded: lambda-5 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T19-51-59-376Z.log
+- Excluded: lambda-25 stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T19-51-59-369Z.log
+- Excluded: container-node stacktape git-cold handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T19-51-59-353Z.log
+- Excluded: lambda-5 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-5-push-2026-10-17T19-51-59-376Z.log
+- Excluded: lambda-25 stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-lambda-25-push-2026-10-17T19-51-59-369Z.log
+- Excluded: container-node stacktape git-warm handlers run 1 (excluded: Rounds 1–10: WSL monotonic clock ran approximately 9% fast; readiness timings invalid. Valid series starts 2026-10-17T22:00Z.); log logs/bmk-stacktape-container-node-push-2026-10-17T19-51-59-353Z.log
 - Excluded: lambda-1 sst cli shared run 1 (failed: Stopped waiting: the deploy command failed); log logs/bmk-sst-lambda-1-deploy-2026-10-17T14-56-45-510Z.log
 - Excluded: five-services sst cli handlers run 1 (failed: Stopped waiting: the deploy command failed); log logs/bmk-sst-five-services-deploy-2026-10-17T14-57-54-158Z.log
 - Excluded: container-python sst cli handlers run 1 (failed: Stopped waiting: the deploy command failed); log logs/bmk-sst-container-python-deploy-2026-10-17T14-57-56-426Z.log
 - Excluded: lambda-1 sst cli shared run 1 (failed: Stopped waiting: the deploy command failed); log logs/bmk-sst-lambda-1-deploy-2026-10-17T14-58-12-043Z.log
 - Excluded: five-services render git-cold handlers run 1 (failed: webhooks: HTTP 404); log logs/bmk-render-five-services-push-2026-10-17T15-00-22-358Z.log
+
+**Stacktape Git push after verified hibernation (separate samples)**
+
+| series | runs | seconds: median (min–max) |
+| --- | --- | --- |
+| container-node stacktape git-resume | 3 | 85.1 (69.2–93.1) |
+| lambda-25 stacktape git-resume | 3 | 53.9 (51.2–54.9) |
+| lambda-5 stacktape git-resume | 3 | 50.3 (48.4–51.7) |
 
 </details>
 
@@ -456,8 +599,9 @@ them from the tool modules in [`tools/`](tools).
 - Packaging: `stacktape package`. Deploy: `stacktape deploy`.
 - Functions and the Node.js services use Stacktape's `js-bundle` packaging. The Python service uses `buildpack`.
 - `stacktape deploy` updates code-only changes directly, without a CloudFormation update. This is its default.
-- Git push: Stacktape Console's Git integration, which builds on a runner in your AWS account. The runner stops after
-  15 idle minutes, so the push 15 minutes later starts a stopped runner.
+- Git push: Stacktape Console's Git integration, which deploys on the project's runner in your AWS account (a
+  c7a.2xlarge EC2 instance with a cache disk). [Stacktape Git push runs](#stacktape-git-push-runs) describes what the
+  first push and the push 15 minutes later find on the runner.
 
 ### Serverless Framework
 
@@ -669,9 +813,9 @@ application:
 
 **Stacktape**
 
-- In the Stacktape Console, connect your fork and the test's branch to the project, with the stage `bmk` in `eu-west-1`. The Console runner builds in your AWS account with the Stacktape version set in the Console, so set the version you measure there.
-- To empty the runner's caches before each first push, delete the project's runner in the Console and pass `--cold-reset manual`.
-- The Console runner installs Stacktape from npm, so this test needs a published version. The pinned commit above is not published, so the qualification results have no Stacktape Git push test.
+- Deploy the test's branch once with `stacktape deploy` from a terminal and answer yes to "Set up automatic deployments on push". This connects the repository and the test's branch to the project with the stage `bmk` in `eu-west-1`. Stacktape's GitHub app must have access to the repository.
+- Every push then deploys on the project's runner in your AWS account: an EC2 instance with a cache disk, launched for the first push and hibernated after 15 idle minutes. The runner installs the Stacktape version set for the project in the Console from npm unless its image already contains that version. A build from source is not on npm; the main README describes how we measured one.
+- To empty the runner's caches before each first push, remove the project's runner (its instance, cache disk and record) and pass `--cold-reset manual`. The Console can't do this yet; see the main README.
 
 **Serverless Framework**
 

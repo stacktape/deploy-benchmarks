@@ -5,7 +5,7 @@
 // runner uses the Stacktape version configured in the Console, not STACKTAPE_BIN.
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { capture, findFunctions, imageBytes, REGION, serviceDir, STAGE, stackOutputs, zipSize } from '../lib.mjs';
+import { capture, findFunctions, imageBytes, REGION, serviceDir, sleep, STAGE, stackOutputs, zipSize } from '../lib.mjs';
 
 // The stacktape/stacktape commit the published results were measured with. `version` checks that STACKTAPE_BIN was
 // built from it (the build's version ends in the short commit). STACKTAPE_COMMIT measures another build without
@@ -26,6 +26,68 @@ function account({ docs }) {
   return ['--awsAccount', process.env.STACKTAPE_AWS_ACCOUNT];
 }
 const camel = (s) => s.replace(/-(.)/g, (_, c) => c.toUpperCase());
+const aws = (service, ...args) => JSON.parse(capture(['aws', service, ...args, '--region', REGION, '--output', 'json']));
+
+// A Git push job writes to the runner log group in the deployment account: the Console logs the runner's start in
+// `<invocation>/provisioning`, and SSM sends the job's output to `<command>/<instance>/aws-runShellScript/stdout`
+// about once a second, so a line's time is its event's time, to about a second.
+const RUNNER_LOGS = '/stacktape/ec2-runner';
+const events = (args) => {
+  const found = [];
+  let token;
+  do {
+    const page = aws('logs', 'filter-log-events', '--log-group-name', RUNNER_LOGS, ...args, ...(token ? ['--next-token', token] : []));
+    found.push(...page.events);
+    token = page.nextToken;
+  } while (token);
+  return found.sort((a, b) => a.timestamp - b.timestamp);
+};
+const durationMs = (text) =>
+  [...text.matchAll(/([\d.]+)(ms|s|m|h)/g)].reduce((ms, [, n, unit]) => ms + Number(n) * { ms: 1, s: 1000, m: 60_000, h: 3_600_000 }[unit], 0);
+
+/**
+ * Where the time of the Git push job started at or after `pushedAt` went, in ms after the push returned. The new code
+ * can serve before the deploy command ends, so this waits up to 20 minutes for the job's end.
+ */
+async function runnerTimings({ name, pushedAt }) {
+  const pushed = Date.parse(pushedAt);
+  const start = ['--start-time', String(pushed - 60_000)];
+  let command;
+  let output = [];
+  for (const deadline = Date.now() + 20 * 60_000; Date.now() < deadline; await sleep(15_000)) {
+    command ??= events([...start, '--filter-pattern', `"--projectName ${project(name)} "`]).find((e) => e.timestamp >= pushed);
+    if (!command) continue;
+    output = events([...start, '--log-stream-name-prefix', command.logStreamName]);
+    if (output.some((e) => /=== Build Complete ===|Elapsed: |failed to run commands/.test(e.message))) break;
+  }
+  if (!command) throw new Error(`No runner job of ${project(name)} after ${pushedAt}`);
+  const [commandId, instanceId] = command.logStreamName.split('/');
+  const provisioning = events([...start, '--filter-pattern', `"${commandId}"`]).find((e) => e.logStreamName.endsWith('/provisioning'));
+  const consoleLog = provisioning ? events([...start, '--log-stream-names', provisioning.logStreamName]) : [];
+  const at = (list, pattern) => list.find((e) => pattern.test(e.message))?.timestamp;
+  const since = (t) => (t === undefined ? null : t - pushed);
+  const first = consoleLog[0]?.message ?? '';
+  // The CLI ends with a summary of its phases: `  ✓ Build & Package 10.4s`.
+  const summary = output.map((e) => e.message).join('\n');
+  const phases = Object.fromEntries([...summary.matchAll(/^\s*[✓✗] (.+?) ((?:[\d.]+(?:ms|s|m|h)\s?)+)$/gm)].map(([, phase, d]) => [phase.trim(), durationMs(d)]));
+  const [image] = aws('ec2', 'describe-instances', '--instance-ids', instanceId).Reservations.flatMap((r) => r.Instances);
+  return {
+    runner: /Provisioning/.test(first) ? 'new' : /Starting existing|Waiting for EC2 runner/.test(first) ? 'stopped' : /Using existing/.test(first) ? 'running' : 'unknown',
+    instanceId,
+    instanceType: image?.InstanceType,
+    ami: image?.ImageId,
+    // From the push: the Console's first log line, the runner ready, the job's first output, the dependency install,
+    // the deploy command and its end.
+    queuedMs: since(consoleLog[0]?.timestamp),
+    instanceLaunchedMs: since(image?.LaunchTime && Date.parse(image.LaunchTime)),
+    runnerReadyMs: since(at(consoleLog, /Runner command started/)),
+    jobStartedMs: since(at(output, /=== EC2 Runner Build/)),
+    installStartedMs: since(at(output, /Installing dependencies/)),
+    deployStartedMs: since(at(output, /^Running: stacktape /m)),
+    deployEndedMs: since(at(output, /^\s*(Total|Elapsed): /m)),
+    cliPhasesMs: phases
+  };
+}
 
 function config({ app, name }) {
   const resources = {};
@@ -67,9 +129,9 @@ export default {
       '`STACKTAPE_BIN`: the path of the Stacktape binary to measure.'
     ],
     gitPush: () => [
-      'In the Stacktape Console, connect your fork and this branch to the project, with the stage `bmk` in `eu-west-1`. The Console runner builds in your AWS account with the Stacktape version set in the Console, so set the version you measure there.',
-      "To empty the runner's caches before each first push, delete the project's runner in the Console and pass `--cold-reset manual`.",
-      'The Console runner installs Stacktape from npm, so this test needs a published version. The pinned commit above is not published, so the qualification results have no Stacktape Git push test.'
+      'Deploy this branch once with `stacktape deploy` from a terminal and answer yes to "Set up automatic deployments on push". This connects the repository and this branch to the project with the stage `bmk` in `eu-west-1`. Stacktape\'s GitHub app must have access to the repository.',
+      'Every push then deploys on the project\'s runner in your AWS account: an EC2 instance with a cache disk, launched for the first push and hibernated after 15 idle minutes. The runner installs the Stacktape version set for the project in the Console from npm unless its image already contains that version. A build from source is not on npm; the main README describes how we measured one.',
+      "To empty the runner's caches before each first push, remove the project's runner (its instance, cache disk and record) and pass `--cold-reset manual`. The Console can't do this yet; see the main README."
     ]
   },
   // JSON is valid YAML.
@@ -102,6 +164,7 @@ export default {
   // Code-only changes are updated directly (without CloudFormation) by the default deploy.
   deploy: (ctx) => [bin(ctx), 'deploy', ...common, ...projectArgs(ctx), ...account(ctx), '--autoConfirmOperation'],
   remove: (ctx) => [bin(ctx), 'delete', ...common, ...projectArgs(ctx), ...account(ctx), '--autoConfirmOperation'],
+  buildInfo: (ctx) => runnerTimings(ctx),
   addresses({ app, name }) {
     if (app.kind === 'lambda') return findFunctions(`${project(name)}-${STAGE}-`, app.functions);
     const outputs = stackOutputs(`${project(name)}-${STAGE}`);

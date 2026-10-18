@@ -1,15 +1,15 @@
 // Prints median, minimum and maximum of every series in results/*.jsonl.
 //   node report.mjs              aligned text
 //   node report.mjs --markdown   Markdown tables, as in README.md
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { APPS, ROOT } from './lib.mjs';
 
 const markdown = process.argv.includes('--markdown');
 
-const load = (file) =>
-  existsSync(join(ROOT, 'results', file))
-    ? readFileSync(join(ROOT, 'results', file), 'utf8').trim().split('\n').filter(Boolean).map((line) => JSON.parse(line))
+const load = (file, directory = 'results') =>
+  existsSync(join(ROOT, directory, file))
+    ? readFileSync(join(ROOT, directory, file), 'utf8').trim().split('\n').filter(Boolean).map((line) => JSON.parse(line))
     : [];
 
 const median = (values) => {
@@ -54,13 +54,21 @@ table('Container image size', packages.filter(isContainer), (r) => `${r.app} ${r
 ]);
 
 // Failed or incorrect deploys are listed, not averaged in.
-const deploys = load('deploy.jsonl');
-const ok = (r) => r.businessOk && r.unchangedOk;
+// A series measured separately can keep its rows in its own deploy-<name>.jsonl. A row with `excluded` was found
+// invalid after the run; it stays in the data with the reason.
+const deploys = (existsSync(join(ROOT, 'results')) ? readdirSync(join(ROOT, 'results')) : []).filter((f) => /^deploy(-[\w-]+)?\.jsonl$/.test(f)).sort().flatMap((file) => load(file));
+const ok = (r) => r.businessOk && r.unchangedOk && !r.excluded;
 table('Time from deploy start (or git push return) until the new code serves', deploys, (r) => `${r.app} ${r.tool} ${r.journey} ${r.change}`, [
+  ['valid', (g) => `${g.filter(ok).length}`],
   ['excluded', (g) => `${g.filter((r) => !ok(r)).length}`],
   ['seconds: median (min–max)', (g) => stats(g.filter(ok).map((r) => r.readyMs), seconds)]
 ]);
 for (const r of deploys.filter((r) => !ok(r))) {
-  const why = r.failed ? `failed: ${r.error}` : `business check ${r.businessOk ? 'passed' : 'failed'}, unchanged targets ${r.unchangedOk ? 'kept' : 'changed'}`;
+  const why = r.excluded ? `excluded: ${r.excluded}` : r.failed ? `failed: ${r.error}` : `business check ${r.businessOk ? 'passed' : 'failed'}, unchanged targets ${r.unchangedOk ? 'kept' : 'changed'}`;
   console.log(`${markdown ? '- ' : ''}Excluded: ${r.app} ${r.tool} ${r.journey} ${r.change} run ${r.run} (${why}); log ${r.log}`);
 }
+
+const resumes = load('resume.jsonl', 'results-extra');
+table('Stacktape Git push after verified hibernation (separate samples)', resumes, (r) => `${r.app} ${r.tool} ${r.journey}`, [
+  ['seconds: median (min–max)', (g) => stats(g.map((r) => r.readyMs), seconds)]
+]);
