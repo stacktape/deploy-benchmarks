@@ -4,7 +4,7 @@ import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
 
 // Prisma's generated client reads import.meta.url, which a CommonJS bundle leaves empty, so the functions are bundled
 // as ES modules. The banner gives them a `require` for CommonJS dependencies that load Node.js built-ins.
-const esm = { format: OutputFormat.ESM, banner: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);" };
+const esm = { format: OutputFormat.ESM, banner: "import { createRequire as __benchCreateRequire } from 'module'; const require = __benchCreateRequire(import.meta.url);" };
 
 const app = new App();
 const stack = new Stack(app, 'bmk-cdk-hotswap-lambda-25', { env: { region: 'eu-west-1' } });

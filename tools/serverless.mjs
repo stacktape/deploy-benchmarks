@@ -33,7 +33,7 @@ build:
     external:
       - pdfkit
     banner:
-      js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);"
+      js: "import { createRequire as __benchCreateRequire } from 'module'; const require = __benchCreateRequire(import.meta.url);"
 functions:
 ${app.functions.map((fn) => `  ${fn}:\n    handler: src/handlers/${fn}.handler`).join('\n')}
 `;
