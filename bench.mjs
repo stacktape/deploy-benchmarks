@@ -65,6 +65,7 @@ async function describeRun() {
     tool: toolName,
     toolVersion: await tool.version(ctx),
     stacktapeCommit: tool.commit,
+    ...(toolName === 'stacktape' && app.kind === 'service' ? { codeSwapOptIn: true } : {}),
     machine: await machine(),
     log: relative(ROOT, log)
   };

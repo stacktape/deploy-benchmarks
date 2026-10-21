@@ -58,11 +58,17 @@ table('Container image size', packages.filter(isContainer), (r) => `${r.app} ${r
 // invalid after the run; it stays in the data with the reason.
 const deploys = (existsSync(join(ROOT, RESULTS_DIR)) ? readdirSync(join(ROOT, RESULTS_DIR)) : []).filter((f) => /^deploy(-[\w-]+)?\.jsonl$/.test(f)).sort().flatMap((file) => load(file));
 const ok = (r) => r.businessOk && r.unchangedOk && !r.excluded;
-table('Time from deploy start (or git push return) until the new code serves', deploys, (r) => `${r.app} ${r.tool} ${r.journey} ${r.change}${r.codeSwapOptIn ? ' opt-in/' + r.deploymentMode : ''}`, [
+table('Time from deploy start (or git push return) until the new code serves', deploys, (r) => `${r.app} ${r.tool} ${r.journey} ${r.change}${r.codeSwapOptIn ? ' opt-in' : ''}`, [
   ['valid', (g) => `${g.filter(ok).length}`],
   ['excluded', (g) => `${g.filter((r) => !ok(r)).length}`],
   ['seconds: median (min–max)', (g) => stats(g.filter(ok).map((r) => r.readyMs), seconds)]
 ]);
+if (deploys.some((r) => r.codeSwapOptIn)) {
+  table('Opt-in container deployment paths (subsets of the CLI result above)', deploys.filter((r) => r.codeSwapOptIn), (r) => `${r.app} ${r.deploymentMode ?? 'failed before mode was recorded'}`, [
+    ['valid', (g) => `${g.filter(ok).length}`],
+    ['seconds: median (min–max)', (g) => stats(g.filter(ok).map((r) => r.readyMs), seconds)]
+  ]);
+}
 for (const r of deploys.filter((r) => !ok(r))) {
   const why = r.excluded ? `excluded: ${r.excluded}` : r.failed ? `failed: ${r.error}` : `business check ${r.businessOk ? 'passed' : 'failed'}, unchanged targets ${r.unchangedOk ? 'kept' : 'changed'}`;
   console.log(`${markdown ? '- ' : ''}Excluded: ${r.app} ${r.tool} ${r.journey} ${r.change} run ${r.run} (${why}); log ${r.log}`);
