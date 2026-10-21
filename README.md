@@ -594,6 +594,13 @@ them from the tool modules in [`tools/`](tools).
 
 ### Stacktape
 
+The 21 October container qualification opts into `web-service.properties.codeSwap: true`. This feature is off by
+default. The eligible Node.js service uses amd64, no configured health check, and one task (at most two during a
+rollout). Current Stacktape supports one container service per stack: Python and `five-services` use image fallback.
+Every result records `codeSwapOptIn`, `deploymentMode` and the CLI's explanation. The 17 October image deployment
+numbers remain in the original `results/` series. Compare the opt-in results separately; do not call a fallback a swap.
+
+
 - Configuration: [`configs/stacktape/`](configs/stacktape), written by [`tools/stacktape.mjs`](tools/stacktape.mjs).
 - Version: the CLI built from source at a commit that each result records. See
   [Build Stacktape from source](#build-stacktape-from-source).
@@ -736,6 +743,16 @@ query compiler is plain JavaScript and WebAssembly in Prisma 7. `prisma generate
 
 ## Run the benchmark
 
+Use `BENCH_RESULTS_DIR=results/2026-10-21` for the new fixture qualification, including when running `report.mjs`.
+The original `results/` files retain the 17 October fixture and image-deploy measurements. The Lambda fixture changed
+on 21 October: shared service/util packages now exercise search serialization, Drive/Calendar request construction,
+Sentry scope context, international phone/country normalization and numerical statistics. Every handler also renders
+HTML and CSV/XML records through real npm libraries. These paths execute and are checked; there are no ballast files.
+The larger backend represents applications with more integrations and document processing. It also tests the tradeoff
+between a shared layer and duplicated per-function bundles. The same source and dependency versions go to every tool,
+and results are reported even where Stacktape loses. See [fixture details](fixtures/README.md).
+
+
 Run on a dedicated machine in `eu-west-1`, the region of the deployments; we use EC2. Image sizes need Docker's
 containerd image store, the default of Docker Desktop and Docker Engine 29; the older overlay2 store reports
 unpacked sizes, so the harness refuses it. Everything the benchmark
@@ -778,7 +795,7 @@ The published results use a Stacktape CLI built from source. Each result records
 
 ```sh
 git clone https://github.com/stacktape/stacktape && cd stacktape
-git checkout d51f56ad17b9a24056046d7af99bd3716afb30da   # the commit in tools/stacktape.mjs
+git checkout 68a687de317ae6285614ea5e57d98cfbbc27166f   # the commit in tools/stacktape.mjs
 pnpm install --frozen-lockfile
 pnpm turbo run build --filter=@stacktape/init-ui
 cd apps/cli

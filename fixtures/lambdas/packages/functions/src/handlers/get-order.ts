@@ -1,3 +1,4 @@
+import { receipt } from '../documents/receipt';
 import { apiHandler, authenticate, getOrder } from '@shop/service';
 import { notFound } from '@shop/util';
 import { z } from 'zod';
@@ -7,5 +8,5 @@ export const handler = apiHandler({ name: 'get-order', schema: z.object({ orderI
   const customerId = await authenticate(event.headers?.authorization);
   const order = await getOrder(body.orderId);
   if (order.customerId !== customerId) throw notFound(`Order ${body.orderId}`);
-  return { revision, orderId: order.id, status: order.status, total: order.total.toFixed(2), items: order.lines.length, shipments: order.shipments.length };
+  return { receipt: receipt('get-order'), revision, orderId: order.id, status: order.status, total: order.total.toFixed(2), items: order.lines.length, shipments: order.shipments.length };
 });

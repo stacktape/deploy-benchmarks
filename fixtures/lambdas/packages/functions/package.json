@@ -10,6 +10,12 @@
     "exceljs": "4.4.0",
     "p-map": "7.1.1",
     "pdfkit": "0.20.2",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "handlebars": "4.7.10",
+    "marked": "18.1.1",
+    "sanitize-html": "2.18.1",
+    "fast-xml-parser": "5.11.2",
+    "csv-parse": "7.0.3",
+    "csv-stringify": "6.9.0"
   }
 }

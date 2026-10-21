@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { InvokeCommand, LambdaClient, ListFunctionsCommand } from '@aws-sdk/client-lambda';
 
 export const ROOT = dirname(fileURLToPath(import.meta.url));
+export const RESULTS_DIR = process.env.BENCH_RESULTS_DIR ?? 'results';
 // Every deployment runs in this region. The configurations in configs/ and in the test branches contain it, so to use
 // another region, change it here and run `node configs.mjs` and `node branches.mjs`.
 export const REGION = 'eu-west-1';
@@ -269,8 +270,8 @@ export async function machine() {
 }
 
 export function record(file, entry) {
-  mkdirSync(join(ROOT, 'results'), { recursive: true });
-  appendFileSync(join(ROOT, 'results', file), `${JSON.stringify(entry)}\n`);
+  mkdirSync(join(ROOT, RESULTS_DIR), { recursive: true });
+  appendFileSync(join(ROOT, RESULTS_DIR, file), `${JSON.stringify(entry)}\n`);
 }
 
 /** Base images of the Dockerfiles below. */

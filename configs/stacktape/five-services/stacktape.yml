@@ -4,6 +4,7 @@
     "api": {
       "type": "web-service",
       "properties": {
+        "codeSwap": true,
         "packaging": {
           "type": "js-bundle",
           "properties": {
@@ -13,12 +14,17 @@
         "resources": {
           "cpu": 0.25,
           "memory": 512
+        },
+        "scaling": {
+          "minInstances": 1,
+          "maxInstances": 1
         }
       }
     },
     "reporting": {
       "type": "web-service",
       "properties": {
+        "codeSwap": true,
         "packaging": {
           "type": "js-bundle",
           "properties": {
@@ -28,12 +34,17 @@
         "resources": {
           "cpu": 0.25,
           "memory": 512
+        },
+        "scaling": {
+          "minInstances": 1,
+          "maxInstances": 1
         }
       }
     },
     "inventory": {
       "type": "web-service",
       "properties": {
+        "codeSwap": true,
         "packaging": {
           "type": "js-bundle",
           "properties": {
@@ -43,12 +54,17 @@
         "resources": {
           "cpu": 0.25,
           "memory": 512
+        },
+        "scaling": {
+          "minInstances": 1,
+          "maxInstances": 1
         }
       }
     },
     "webhooks": {
       "type": "web-service",
       "properties": {
+        "codeSwap": true,
         "packaging": {
           "type": "js-bundle",
           "properties": {
@@ -58,12 +74,17 @@
         "resources": {
           "cpu": 0.25,
           "memory": 512
+        },
+        "scaling": {
+          "minInstances": 1,
+          "maxInstances": 1
         }
       }
     },
     "notifications": {
       "type": "web-service",
       "properties": {
+        "codeSwap": true,
         "packaging": {
           "type": "js-bundle",
           "properties": {
@@ -73,6 +94,10 @@
         "resources": {
           "cpu": 0.25,
           "memory": 512
+        },
+        "scaling": {
+          "minInstances": 1,
+          "maxInstances": 1
         }
       }
     }

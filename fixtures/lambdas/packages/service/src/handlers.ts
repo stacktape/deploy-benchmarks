@@ -1,8 +1,9 @@
 // The entry-point wrappers from @shop/util, with the service revision added to every result.
 import * as util from '@shop/util';
+import { auditEnvelope } from './audit';
 import { serviceRevision } from './orders';
 
-const extra = () => ({ serviceRevision });
+const extra = () => ({ serviceRevision, audit: auditEnvelope('shop-operation') });
 type Options<T> = Omit<T, 'extra'>;
 
 export const sqsWorker = <S extends Parameters<typeof util.sqsWorker>[0]['schema']>(o: Options<Parameters<typeof util.sqsWorker<S>>[0]>, fn: Parameters<typeof util.sqsWorker<S>>[1]) =>

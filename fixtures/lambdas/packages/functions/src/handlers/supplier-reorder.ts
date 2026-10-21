@@ -1,3 +1,4 @@
+import { receipt } from '../documents/receipt';
 import { enqueue, lowStockProducts, scheduledJob } from '@shop/service';
 import { revision } from './supplier-reorder.revision';
 
@@ -7,5 +8,5 @@ export const handler = scheduledJob({ name: 'supplier-reorder' }, async () => {
   const products = await lowStockProducts(10);
   const orders = products.map((p) => ({ productId: p.id, quantity: REORDER_TO - p.stock }));
   const messages = orders.map((o) => enqueue('supplier-orders', o, o.productId));
-  return { revision, reorders: orders, queued: messages.length };
+  return { receipt: receipt('supplier-reorder'), revision, reorders: orders, queued: messages.length };
 });

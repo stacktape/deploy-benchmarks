@@ -1,3 +1,4 @@
+import { receipt } from '../documents/receipt';
 import { enqueue, getOrder, prisma, sqsWorker, stableId } from '@shop/service';
 import { z } from 'zod';
 import { revision } from './fulfilment-dispatch.revision';
@@ -12,5 +13,5 @@ export const handler = sqsWorker({ name: 'fulfilment-dispatch', schema: z.object
     data: { id: stableId('shipment', orderId), orderId, carrier, trackingNumber: 'pending', status: 'label_requested', updatedAt: new Date('2025-01-16T08:00:00Z') }
   });
   const label = enqueue('carrier-labels', { shipmentId: shipment.id, carrier, weightGrams }, orderId);
-  return { revision, shipmentId: shipment.id, carrier, weightGrams, queued: label.input.QueueUrl!.split('/').pop() };
+  return { receipt: receipt('fulfilment-dispatch'), revision, shipmentId: shipment.id, carrier, weightGrams, queued: label.input.QueueUrl!.split('/').pop() };
 });

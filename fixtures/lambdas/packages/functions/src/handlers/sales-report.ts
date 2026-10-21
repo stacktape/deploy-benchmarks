@@ -1,3 +1,4 @@
+import { receipt } from '../documents/receipt';
 // Scheduled job: the previous day's sales report as PDF, Excel and Word documents, stored for the finance team.
 import { Document, Packer, Paragraph, Table, TableCell, TableRow } from 'docx';
 import ExcelJS from 'exceljs';
@@ -52,5 +53,5 @@ export const handler = scheduledJob({ name: 'sales-report' }, async (now) => {
     { type: 'xlsx', bytes: xlsx.byteLength, prefix: Buffer.from(xlsx).subarray(0, 2).toString() },
     { type: 'docx', bytes: docx.length, prefix: docx.subarray(0, 2).toString() }
   ];
-  return { revision, day: isoDay(day), orders: orders.length, total, files, key: stored.input.Key };
+  return { receipt: receipt('sales-report'), revision, day: isoDay(day), orders: orders.length, total, files, key: stored.input.Key };
 });

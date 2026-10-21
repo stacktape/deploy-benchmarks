@@ -1,3 +1,4 @@
+import { receipt } from '../documents/receipt';
 import { apiHandler, orderEvent, setOrderStatus, verifyWebhook } from '@shop/service';
 import type Stripe from 'stripe';
 import { z } from 'zod';
@@ -10,5 +11,5 @@ export const handler = apiHandler({ name: 'stripe-webhook', schema: z.object({ p
   const orderId = (event.data.object as Stripe.PaymentIntent).metadata.orderId;
   if (event.type === 'payment_intent.succeeded') await setOrderStatus(orderId, 'paid');
   const published = orderEvent('OrderPaid', { orderId });
-  return { revision, accepted: true, type: event.type, orderId, published: published.input.Entries![0].DetailType };
+  return { receipt: receipt('stripe-webhook'), revision, accepted: true, type: event.type, orderId, published: published.input.Entries![0].DetailType };
 });

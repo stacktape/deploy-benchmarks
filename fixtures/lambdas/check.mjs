@@ -20,6 +20,11 @@ for (const fn of manifest.lambda.functions) {
     result = JSON.parse(result.body);
   }
   if (Array.isArray(result.results)) result = { ...result, ...result.results[0] };
+  assert.equal(result.audit.document.customer.country, 'USA', `${fn.name}: customer normalization`);
+  assert.equal(result.audit.document.customer.average, 16.5, `${fn.name}: currency statistics`);
+  assert.ok(result.receipt.html.includes(fn.name), `${fn.name}: rendered receipt`);
+  assert.ok(result.receipt.csv.includes('33.00'), `${fn.name}: CSV export`);
+  assert.equal(result.audit.tags.operation, 'shop-operation', `${fn.name}: error context`);
   assert.equal(result.revision, 'baseline', `${fn.name}: revision`);
   assert.equal(result.serviceRevision, 'baseline', `${fn.name}: serviceRevision`);
   assert.ok(contains(result, fn.probe.expected), `${fn.name}: unexpected result ${JSON.stringify(result)}`);

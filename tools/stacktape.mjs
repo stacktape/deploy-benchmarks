@@ -3,14 +3,14 @@
 // with AWS_PROFILE. STACKTAPE_AWS_ACCOUNT names that connection; it must be the account AWS_PROFILE points to.
 // Git push journey: Stacktape Console GitOps (the project's GitHub repository connected in the Console). The Console
 // runner uses the Stacktape version configured in the Console, not STACKTAPE_BIN.
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { capture, findFunctions, imageBytes, REGION, serviceDir, sleep, STAGE, stackOutputs, zipSize } from '../lib.mjs';
 
 // The stacktape/stacktape commit the published results were measured with. `version` checks that STACKTAPE_BIN was
 // built from it (the build's version ends in the short commit). STACKTAPE_COMMIT measures another build without
 // changing the generated files, so a Git push still continues the published branch.
-const PINNED_COMMIT = 'd51f56ad17b9a24056046d7af99bd3716afb30da';
+const PINNED_COMMIT = '68a687de317ae6285614ea5e57d98cfbbc27166f';
 const COMMIT = process.env.STACKTAPE_COMMIT ?? PINNED_COMMIT;
 // The Stacktape project, and so the stack `<project>-bmk`, defaults to the test's name. STACKTAPE_PROJECT_NAME gives
 // a second measurement in the same AWS account its own project and stack.
@@ -108,7 +108,7 @@ function config({ app, name }) {
       app.language === 'python'
         ? { type: 'buildpack', properties: { sourceDirectoryPath: dir } }
         : { type: 'js-bundle', properties: { entryfilePath: join(dir, 'server.mjs') } };
-    resources[service] = { type: 'web-service', properties: { packaging, resources: { cpu: 0.25, memory: 512 } } };
+    resources[service] = { type: 'web-service', properties: { codeSwap: true, packaging, resources: { cpu: 0.25, memory: 512 }, scaling: { minInstances: 1, maxInstances: 1 } } };
   }
   const outputs = Object.keys(app.services).map((s) => ({ name: `${s}Url`, value: `$ResourceParam('${s}', 'url')` }));
   return { projectName: name, resources, stackConfig: { outputs } };
@@ -142,7 +142,7 @@ export default {
     return version;
   },
   buildOutputs: ['.stacktape'],
-  package: (ctx) => [bin(ctx), 'package', ...common],
+  package: (ctx) => [bin(ctx), 'package', ...common, ...account(ctx)],
   // `package` writes the function ZIPs and, beside them, the source maps that deploy uploads separately
   // (`*.source-maps.json`, gzip-compressed as `*.source-maps.json.gz` by newer builds). Shared layers are zipped only
   // during deploy, so we zip their directories here, storing their `node_modules` links as links as Stacktape's own
@@ -165,6 +165,13 @@ export default {
   // Measure the normal mixed edit with --change mixed as well as the two isolated changes.
   deploy: (ctx) => [bin(ctx), 'deploy', ...common, ...projectArgs(ctx), ...account(ctx), '--autoConfirmOperation'],
   remove: (ctx) => [bin(ctx), 'delete', ...common, ...projectArgs(ctx), ...account(ctx), '--autoConfirmOperation'],
+  deploymentResult({ app, log }) {
+    if (app.kind !== 'service') return {};
+    const output = readFileSync(log, 'utf8').replace(/\x1b\[[0-9;]*m/g, '');
+    const lines = output.split('\n').filter((line) => /Swapped code in |Image deploy for |Code swap skipped/.test(line));
+    const last = lines.at(-1) ?? '';
+    return { codeSwapOptIn: true, deploymentMode: /Swapped code in /.test(last) ? 'code-swap' : 'image', deploymentDetail: last.trim() || 'No swap reported; see command log' };
+  },
   buildInfo: (ctx) => runnerTimings(ctx),
   addresses({ app, name }) {
     if (app.kind === 'lambda') return findFunctions(`${project(name)}-${STAGE}-`, app.functions);

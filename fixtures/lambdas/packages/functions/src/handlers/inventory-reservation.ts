@@ -1,3 +1,4 @@
+import { receipt } from '../documents/receipt';
 import { getOrder, listProducts, sqsWorker } from '@shop/service';
 import { conflict } from '@shop/util';
 import { z } from 'zod';
@@ -10,5 +11,5 @@ export const handler = sqsWorker({ name: 'inventory-reservation', schema: z.obje
     if (stock < 0) throw conflict(`Not enough ${line.productId}`);
     return { productId: line.productId, remaining: stock };
   });
-  return { revision, orderId, reserved: order.lines.length, remaining };
+  return { receipt: receipt('inventory-reservation'), revision, orderId, reserved: order.lines.length, remaining };
 });

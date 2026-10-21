@@ -3,11 +3,11 @@
 //   node report.mjs --markdown   Markdown tables, as in README.md
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { APPS, ROOT } from './lib.mjs';
+import { APPS, ROOT, RESULTS_DIR } from './lib.mjs';
 
 const markdown = process.argv.includes('--markdown');
 
-const load = (file, directory = 'results') =>
+const load = (file, directory = RESULTS_DIR) =>
   existsSync(join(ROOT, directory, file))
     ? readFileSync(join(ROOT, directory, file), 'utf8').trim().split('\n').filter(Boolean).map((line) => JSON.parse(line))
     : [];
@@ -56,9 +56,9 @@ table('Container image size', packages.filter(isContainer), (r) => `${r.app} ${r
 // Failed or incorrect deploys are listed, not averaged in.
 // A series measured separately can keep its rows in its own deploy-<name>.jsonl. A row with `excluded` was found
 // invalid after the run; it stays in the data with the reason.
-const deploys = (existsSync(join(ROOT, 'results')) ? readdirSync(join(ROOT, 'results')) : []).filter((f) => /^deploy(-[\w-]+)?\.jsonl$/.test(f)).sort().flatMap((file) => load(file));
+const deploys = (existsSync(join(ROOT, RESULTS_DIR)) ? readdirSync(join(ROOT, RESULTS_DIR)) : []).filter((f) => /^deploy(-[\w-]+)?\.jsonl$/.test(f)).sort().flatMap((file) => load(file));
 const ok = (r) => r.businessOk && r.unchangedOk && !r.excluded;
-table('Time from deploy start (or git push return) until the new code serves', deploys, (r) => `${r.app} ${r.tool} ${r.journey} ${r.change}`, [
+table('Time from deploy start (or git push return) until the new code serves', deploys, (r) => `${r.app} ${r.tool} ${r.journey} ${r.change}${r.codeSwapOptIn ? ' opt-in/' + r.deploymentMode : ''}`, [
   ['valid', (g) => `${g.filter(ok).length}`],
   ['excluded', (g) => `${g.filter((r) => !ok(r)).length}`],
   ['seconds: median (min–max)', (g) => stats(g.filter(ok).map((r) => r.readyMs), seconds)]

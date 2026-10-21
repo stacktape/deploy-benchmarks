@@ -18,6 +18,21 @@ The benchmark runner does not run these checks. It checks the deployed applicati
 
 ## Lambda applications
 
+The 21 October fixture grows both shared packages and all handler entry points. A production backend commonly needs
+search, document archives, delivery scheduling, error context, international customer data and partner exports.
+`service/audit.ts` runs Elasticsearch's serializer and Sentry's scope API, creates Drive/Calendar clients and returns
+the requests it would send. `util/customer-profile.ts` validates international phone numbers, converts country codes
+and computes amount statistics with mathjs. Handlers render operational receipts using Handlebars, Markdown and HTML
+sanitization, then serialize and parse partner CSV/XML with csv-parse/csv-stringify and fast-xml-parser.
+
+These are real locked npm dependencies and executed code, not generated padding or copied assets. `npm run check`
+checks the added results alongside the existing business outputs. No outside requests are sent. Every deployment tool
+receives exactly the same application. Larger functions make shared-layer versus per-function duplication a more
+representative comparison; the benchmark does not require either approach to win. Each deployed function plus its
+layers must remain well below Lambda's 250 MB uncompressed limit; upload size counts compressed artifacts and maps
+across the entire app, so the 25-function total can exceed that per-function limit.
+
+
 `lambdas/` is the backend of a small online shop, set up the way many teams build a Lambda backend: an npm
 workspace with one package of functions and two shared packages that nearly every function imports.
 

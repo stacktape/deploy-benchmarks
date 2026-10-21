@@ -24,7 +24,11 @@
     "openai": "7.34.0",
     "pg": "8.23.1",
     "stripe": "23.0.0",
-    "uuid": "14.0.3"
+    "uuid": "14.0.3",
+    "@elastic/elasticsearch": "9.5.1",
+    "@sentry/node": "11.8.0",
+    "@googleapis/drive": "27.0.0",
+    "@googleapis/calendar": "20.1.0"
   },
   "devDependencies": {
     "prisma": "7.10.1"

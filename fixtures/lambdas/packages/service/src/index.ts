@@ -9,3 +9,4 @@ export * from './messaging';
 export * from './orders';
 export * from './payments';
 export * from './reporting';
+export * from './audit';

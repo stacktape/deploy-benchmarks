@@ -152,7 +152,7 @@ async function timedChange({ journey, push, deploy }) {
     else if (change.kind === 'handlers') expected[t] = readRevision(dir, change.file(t));
   }
   editSource(dir, change, revision);
-  await git('commit', '-qam', `Change ${change.kind === 'shared' ? change.file() : 'revisions'} to ${revision}`);
+  await git('commit', '-qam', `[skip ci] Change ${change.kind === 'shared' ? change.file() : 'revisions'} to ${revision}\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`);
   // GitHub sometimes rejects a push without a reason; a retry of the same push succeeds.
   for (let attempt = 1; push; attempt++) {
     const results = await runAll(push);
@@ -173,6 +173,7 @@ async function timedChange({ journey, push, deploy }) {
     stop: () => failed && 'the deploy command failed'
   });
   const commands = await running;
+  const deployment = tool.deploymentResult?.({ ...ctx, log });
   // Every target must now give the right business result from the expected revision: new for changed targets, old
   // for unchanged ones. During a rolling update a load balancer still sends some requests to the old task, so a
   // changed service gets up to a minute to answer from the new revision.
@@ -189,6 +190,7 @@ async function timedChange({ journey, push, deploy }) {
   );
   return {
     journey,
+    ...deployment,
     change: change.kind,
     changedTargets: change.targets.length,
     revision,

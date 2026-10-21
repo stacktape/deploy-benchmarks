@@ -1,3 +1,4 @@
+import { receipt } from '../documents/receipt';
 import { moderationRequest, sqsWorker } from '@shop/service';
 import { z } from 'zod';
 import { revision } from './review-moderation.revision';
@@ -8,5 +9,5 @@ const sample = { reviewId: 'rev_1', productId: 'coffee', rating: 5, text: 'Great
 export const handler = sqsWorker({ name: 'review-moderation', schema, sample }, async (review) => {
   const request = moderationRequest(review.text);
   const needsHumanReview = review.rating <= 2 || review.text.length > 1000;
-  return { revision, reviewId: review.reviewId, model: request.model, needsHumanReview };
+  return { receipt: receipt('review-moderation'), revision, reviewId: review.reviewId, model: request.model, needsHumanReview };
 });
