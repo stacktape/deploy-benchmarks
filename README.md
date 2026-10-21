@@ -747,7 +747,7 @@ Use `BENCH_RESULTS_DIR=results/2026-10-21` for the new fixture qualification, in
 The original `results/` files retain the 17 October fixture and image-deploy measurements. The Lambda fixture changed
 on 21 October: shared service/util packages now exercise search serialization, Drive/Calendar request construction,
 Sentry scope context, international phone/country normalization and numerical statistics. Every handler also renders
-HTML and CSV/XML records through real npm libraries. These paths execute and are checked; there are no ballast files.
+responsive email HTML and CSV/XML records through real npm libraries. These paths execute and are checked; there are no ballast files.
 The larger backend represents applications with more integrations and document processing. It also tests the tradeoff
 between a shared layer and duplicated per-function bundles. The same source and dependency versions go to every tool,
 and results are reported even where Stacktape loses. See [fixture details](fixtures/README.md).

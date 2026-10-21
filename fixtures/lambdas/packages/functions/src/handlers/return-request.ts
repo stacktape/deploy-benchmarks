@@ -12,5 +12,5 @@ export const handler = sqsWorker({ name: 'return-request', schema, sample }, asy
   const days = daysBetween(order.placedAt, new Date(message.requestedAt));
   const eligible = days <= 30;
   const notice = slackMessage('#returns', `Return request for ${order.id}`, [message.reason, `${days} days after purchase`, eligible ? 'Eligible' : 'Outside the 30-day window']);
-  return { receipt: receipt('return-request'), revision, orderId: order.id, eligible, days, slackBlocks: notice.blocks.length };
+  return { receipt: await receipt('return-request'), revision, orderId: order.id, eligible, days, slackBlocks: notice.blocks.length };
 });

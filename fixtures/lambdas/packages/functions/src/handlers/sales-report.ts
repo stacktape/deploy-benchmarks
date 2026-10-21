@@ -53,5 +53,5 @@ export const handler = scheduledJob({ name: 'sales-report' }, async (now) => {
     { type: 'xlsx', bytes: xlsx.byteLength, prefix: Buffer.from(xlsx).subarray(0, 2).toString() },
     { type: 'docx', bytes: docx.length, prefix: docx.subarray(0, 2).toString() }
   ];
-  return { receipt: receipt('sales-report'), revision, day: isoDay(day), orders: orders.length, total, files, key: stored.input.Key };
+  return { receipt: await receipt('sales-report'), revision, day: isoDay(day), orders: orders.length, total, files, key: stored.input.Key };
 });

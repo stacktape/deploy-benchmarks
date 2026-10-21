@@ -8,5 +8,5 @@ export const handler = sqsWorker({ name: 'product-description', schema: z.object
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (!product) throw notFound(`Product ${productId}`);
   const request = describeProductRequest(product);
-  return { receipt: receipt('product-description'), revision, productId, model: request.model, messages: request.messages.length };
+  return { receipt: await receipt('product-description'), revision, productId, model: request.model, messages: request.messages.length };
 });

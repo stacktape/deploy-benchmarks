@@ -5,7 +5,7 @@ import { revision } from './delivery-notification.revision';
 
 export const handler = sqsWorker({ name: 'delivery-notification', schema: z.object({ orderId: z.string(), status: z.enum(['delivered', 'failed']) }), sample: { orderId: 'ord_100', status: 'delivered' } }, async ({ orderId, status }) => {
   const order = await getOrder(orderId);
-  if (status === 'failed') return { receipt: receipt('delivery-notification'), revision, orderId, slack: slackMessage('#fulfilment', `Delivery failed for ${orderId}`, [order.customer.name]).channel };
+  if (status === 'failed') return { receipt: await receipt('delivery-notification'), revision, orderId, slack: slackMessage('#fulfilment', `Delivery failed for ${orderId}`, [order.customer.name]).channel };
   const email = await composeEmail(order.customer.email, `Order ${orderId} delivered`, '<p>Your order has arrived. Enjoy!</p>');
-  return { receipt: receipt('delivery-notification'), revision, orderId, emailed: email.to };
+  return { receipt: await receipt('delivery-notification'), revision, orderId, emailed: email.to };
 });

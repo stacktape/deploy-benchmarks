@@ -8,5 +8,5 @@ export const handler = scheduledJob({ name: 'data-retention-cleanup' }, async (n
   const cutoff = plusDays(now, -90);
   const old = await prisma.shipment.findMany({ where: { status: 'delivered', updatedAt: { lt: cutoff } } });
   for (const s of old) await prisma.shipment.update({ where: { id: s.id }, data: { status: 'archived' } });
-  return { receipt: receipt('data-retention-cleanup'), revision, cutoff: cutoff.toISOString(), archived: old.length };
+  return { receipt: await receipt('data-retention-cleanup'), revision, cutoff: cutoff.toISOString(), archived: old.length };
 });

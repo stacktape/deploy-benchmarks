@@ -15,5 +15,5 @@ export const handler = scheduledJob({ name: 'shipment-tracking-sync' }, async (n
     },
     { concurrency: 4 }
   );
-  return { receipt: receipt('shipment-tracking-sync'), revision, checked: shipments.length, delivered: updated.filter(Boolean).length };
+  return { receipt: await receipt('shipment-tracking-sync'), revision, checked: shipments.length, delivered: updated.filter(Boolean).length };
 });

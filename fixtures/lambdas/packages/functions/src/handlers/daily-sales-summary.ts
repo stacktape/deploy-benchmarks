@@ -8,5 +8,5 @@ export const handler = scheduledJob({ name: 'daily-sales-summary' }, async (now)
   const orders = await ordersPlacedBetween(day, plusDays(day, 1));
   const revenue = orders.reduce((sum, o) => sum.plus(o.total), new Decimal(0));
   const request = appendRowsRequest('Daily!A:C', [[isoDay(day), orders.length, revenue.toFixed(2)]]);
-  return { receipt: receipt('daily-sales-summary'), revision, day: isoDay(day), orders: orders.length, revenue: revenue.toFixed(2), range: request.range };
+  return { receipt: await receipt('daily-sales-summary'), revision, day: isoDay(day), orders: orders.length, revenue: revenue.toFixed(2), range: request.range };
 });

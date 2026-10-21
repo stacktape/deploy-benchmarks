@@ -10,5 +10,5 @@ export const handler = sqsWorker({ name: 'refund-processor', schema, sample: { o
   const line = order.lines.find((l) => l.productId === message.productId)!;
   const refund = refundRequest(order.id, new Decimal(line.unitPrice).times(message.quantity), 'requested_by_customer');
   await setOrderStatus(order.id, 'partially_refunded');
-  return { receipt: receipt('refund-processor'), revision, orderId: order.id, amount: refund.params.amount, idempotencyKey: refund.idempotencyKey };
+  return { receipt: await receipt('refund-processor'), revision, orderId: order.id, amount: refund.params.amount, idempotencyKey: refund.idempotencyKey };
 });

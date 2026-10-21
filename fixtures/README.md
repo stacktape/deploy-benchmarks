@@ -22,7 +22,7 @@ The 21 October fixture grows both shared packages and all handler entry points. 
 search, document archives, delivery scheduling, error context, international customer data and partner exports.
 `service/audit.ts` runs Elasticsearch's serializer and Sentry's scope API, creates Drive/Calendar clients and returns
 the requests it would send. `util/customer-profile.ts` validates international phone numbers, converts country codes
-and computes amount statistics with mathjs. Handlers render operational receipts using Handlebars, Markdown and HTML
+and computes amount statistics with mathjs. Handlers render operational receipts using MJML, Handlebars, Markdown and HTML
 sanitization, then serialize and parse partner CSV/XML with csv-parse/csv-stringify and fast-xml-parser.
 
 These are real locked npm dependencies and executed code, not generated padding or copied assets. `npm run check`

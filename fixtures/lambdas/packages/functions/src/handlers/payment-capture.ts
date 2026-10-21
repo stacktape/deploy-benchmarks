@@ -7,5 +7,5 @@ export const handler = sqsWorker({ name: 'payment-capture', schema: z.object({ o
   const order = await getOrder(orderId);
   const capture = captureRequest(order);
   const event = orderEvent('PaymentCaptureRequested', { orderId, amount: capture.params.amount_to_capture });
-  return { receipt: receipt('payment-capture'), revision, orderId, amount: capture.params.amount_to_capture, idempotencyKey: capture.idempotencyKey, event: event.input.Entries![0].DetailType };
+  return { receipt: await receipt('payment-capture'), revision, orderId, amount: capture.params.amount_to_capture, idempotencyKey: capture.idempotencyKey, event: event.input.Entries![0].DetailType };
 });

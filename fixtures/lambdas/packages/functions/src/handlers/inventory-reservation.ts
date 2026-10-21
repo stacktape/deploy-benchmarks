@@ -11,5 +11,5 @@ export const handler = sqsWorker({ name: 'inventory-reservation', schema: z.obje
     if (stock < 0) throw conflict(`Not enough ${line.productId}`);
     return { productId: line.productId, remaining: stock };
   });
-  return { receipt: receipt('inventory-reservation'), revision, orderId, reserved: order.lines.length, remaining };
+  return { receipt: await receipt('inventory-reservation'), revision, orderId, reserved: order.lines.length, remaining };
 });

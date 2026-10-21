@@ -9,5 +9,5 @@ const sample = { reviewId: 'rev_1', productId: 'coffee', rating: 5, text: 'Great
 export const handler = sqsWorker({ name: 'review-moderation', schema, sample }, async (review) => {
   const request = moderationRequest(review.text);
   const needsHumanReview = review.rating <= 2 || review.text.length > 1000;
-  return { receipt: receipt('review-moderation'), revision, reviewId: review.reviewId, model: request.model, needsHumanReview };
+  return { receipt: await receipt('review-moderation'), revision, reviewId: review.reviewId, model: request.model, needsHumanReview };
 });

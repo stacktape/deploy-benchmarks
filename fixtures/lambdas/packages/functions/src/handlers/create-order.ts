@@ -10,5 +10,5 @@ export const handler = apiHandler({ name: 'create-order', schema, sample }, asyn
   const customerId = await authenticate(event.headers?.authorization);
   const order = await createOrder(customerId, body.requestId, body.lines);
   const next = enqueue('payment-capture', { orderId: order.id });
-  return { receipt: receipt('create-order'), revision, orderId: order.id, status: order.status, total: order.total.toFixed(2), queued: next.input.QueueUrl!.split('/').pop() };
+  return { receipt: await receipt('create-order'), revision, orderId: order.id, status: order.status, total: order.total.toFixed(2), queued: next.input.QueueUrl!.split('/').pop() };
 });

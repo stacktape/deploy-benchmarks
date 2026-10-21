@@ -7,5 +7,5 @@ export const handler = sqsWorker({ name: 'order-confirmation-email', schema: z.o
   const order = await getOrder(orderId);
   const items = order.lines.map((l) => `<li>${l.quantity} × ${l.productId}</li>`).join('');
   const email = await composeEmail(order.customer.email, `Order ${order.id} confirmed`, `<p>Thanks, ${order.customer.name}!</p><ul>${items}</ul><p>Total ${order.total.toFixed(2)} ${order.currency}</p>`);
-  return { receipt: receipt('order-confirmation-email'), revision, ...email };
+  return { receipt: await receipt('order-confirmation-email'), revision, ...email };
 });
