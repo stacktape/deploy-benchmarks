@@ -795,7 +795,7 @@ The published results use a Stacktape CLI built from source. Each result records
 
 ```sh
 git clone https://github.com/stacktape/stacktape && cd stacktape
-git checkout 68a687de317ae6285614ea5e57d98cfbbc27166f   # the commit in tools/stacktape.mjs
+git checkout 1aba589f64ecf4b99a21de493e0a19ce32188303   # the commit in tools/stacktape.mjs
 pnpm install --frozen-lockfile
 pnpm turbo run build --filter=@stacktape/init-ui
 cd apps/cli
