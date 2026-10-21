@@ -744,6 +744,8 @@ query compiler is plain JavaScript and WebAssembly in Prisma 7. `prisma generate
 ## Run the benchmark
 
 Use `BENCH_RESULTS_DIR=results/2026-10-21` for the new fixture qualification, including when running `report.mjs`.
+`stacktape deploy` and `delete` use the explicit `--awsAccount` connection. `stacktape package` rejects that option
+and uses local AWS credentials, so the harness passes `--profile "$AWS_PROFILE"` explicitly instead.
 The original `results/` files retain the 17 October fixture and image-deploy measurements. The Lambda fixture changed
 on 21 October: shared service/util packages now exercise search serialization, Drive/Calendar request construction,
 Sentry scope context, international phone/country normalization and numerical statistics. Every handler also renders

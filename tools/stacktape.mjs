@@ -142,7 +142,8 @@ export default {
     return version;
   },
   buildOutputs: ['.stacktape'],
-  package: (ctx) => [bin(ctx), 'package', ...common, ...account(ctx)],
+  // package is a local-credential command; its parser rejects --awsAccount. Pin the named AWS profile explicitly.
+  package: (ctx) => [bin(ctx), 'package', ...common, '--profile', ctx.docs ? '<aws-profile>' : process.env.AWS_PROFILE],
   // `package` writes the function ZIPs and, beside them, the source maps that deploy uploads separately
   // (`*.source-maps.json`, gzip-compressed as `*.source-maps.json.gz` by newer builds). Shared layers are zipped only
   // during deploy, so we zip their directories here, storing their `node_modules` links as links as Stacktape's own
