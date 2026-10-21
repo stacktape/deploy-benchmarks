@@ -14,5 +14,10 @@
     "tsx": "4.23.15",
     "typescript": "7.0.2",
     "serverless": "4.44.0"
+  },
+  "overrides": {
+    "juice": {
+      "undici": "6.29.1"
+    }
   }
 }

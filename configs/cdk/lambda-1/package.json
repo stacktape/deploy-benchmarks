@@ -17,5 +17,10 @@
     "aws-cdk-lib": "2.273.0",
     "constructs": "10.8.1",
     "esbuild": "0.28.2"
+  },
+  "overrides": {
+    "juice": {
+      "undici": "6.29.1"
+    }
   }
 }

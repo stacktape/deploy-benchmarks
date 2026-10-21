@@ -24,7 +24,18 @@ for (const t of all) {
     const files = toolFiles(t, tmp);
     if (t.tool.devDependencies) {
       const current = join(ROOT, 'configs', t.toolName, t.appId, 'package-lock.json');
-      if (existsSync(current)) writeFileSync(join(tmp, 'package-lock.json'), readFileSync(current));
+      if (existsSync(current)) {
+        const locked = JSON.parse(readFileSync(current, 'utf8'));
+        // Tool locks can otherwise reuse a tool's older transitive version for the application. Seed the
+        // application's locked production packages before npm reconciles the tool's pinned dependencies.
+        if (t.app.kind === 'lambda') {
+          const application = JSON.parse(readFileSync(join(tmp, 'package-lock.json'), 'utf8'));
+          for (const [path, entry] of Object.entries(application.packages)) {
+            if (path && !entry.dev) locked.packages[path] = entry;
+          }
+        }
+        writeFileSync(join(tmp, 'package-lock.json'), JSON.stringify(locked, null, 2));
+      }
       writeFileSync(join(tmp, 'package.json'), files['package.json']);
       execFileSync('npm', ['install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: tmp, stdio: ['ignore', 'ignore', 'inherit'] });
       files['package-lock.json'] = readFileSync(join(tmp, 'package-lock.json'), 'utf8');

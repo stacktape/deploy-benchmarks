@@ -30,6 +30,10 @@ those handlers represents their work and lets the 25-function app build on the 1
 per-tool concurrency tuning. Putting MJML into all 25 handlers exhausted Serverless's build memory during setup;
 that discarded fixture variant was never timed.
 
+The root manifest pins Juice's Undici 6 dependency to the same patch version for every tool. Without this pin,
+Serverless's existing tool lock reused 6.29.0 while the other projects installed 6.29.1. This is a common application
+dependency pin, not a tool-specific bundling setting.
+
 These are real locked npm dependencies and executed code, not generated padding or copied assets. `npm run check`
 checks the added results alongside the existing business outputs. No outside requests are sent. Every deployment tool
 receives exactly the same application. Larger functions make shared-layer versus per-function duplication a more
