@@ -356,3 +356,49 @@ export function imageBytes(tag) {
   }
   return Number(capture(['docker', 'image', 'inspect', tag, '--format', '{{.Size}}']));
 }
+
+/**
+ * Samples the whole machine's memory every 250 ms until `stop()` is called, so a run records the memory pressure it
+ * ran under: the most memory in use (total minus available), the most swap in use, and the pages swapped in and out
+ * meanwhile. It covers every process on the machine, including other series running at the same time. Linux only;
+ * elsewhere `stop()` returns undefined.
+ */
+export function sampleMemory() {
+  const read = (file) => {
+    try {
+      return readFileSync(file, 'utf8');
+    } catch {
+      return undefined;
+    }
+  };
+  const meminfo = () => {
+    const text = read('/proc/meminfo');
+    if (!text) return undefined;
+    const kb = (key) => Number(text.match(new RegExp(`^${key}:\\s+(\\d+)`, 'm'))?.[1] ?? 0);
+    return { used: kb('MemTotal') - kb('MemAvailable'), swap: kb('SwapTotal') - kb('SwapFree'), total: kb('MemTotal') };
+  };
+  const vmstat = () => {
+    const text = read('/proc/vmstat') ?? '';
+    const pages = (key) => Number(text.match(new RegExp(`^${key} (\\d+)`, 'm'))?.[1] ?? 0);
+    return { in: pages('pswpin'), out: pages('pswpout') };
+  };
+  const first = meminfo();
+  if (!first) return { stop: () => undefined };
+  const startPages = vmstat();
+  let peakUsed = first.used;
+  let peakSwap = first.swap;
+  const timer = setInterval(() => {
+    const now = meminfo();
+    peakUsed = Math.max(peakUsed, now.used);
+    peakSwap = Math.max(peakSwap, now.swap);
+  }, 250);
+  timer.unref();
+  return {
+    stop() {
+      clearInterval(timer);
+      const end = vmstat();
+      const mb = (kb) => Math.round(kb / 1024);
+      return { totalMb: mb(first.total), peakUsedMb: mb(peakUsed), peakSwapMb: mb(peakSwap), swapInPages: end.in - startPages.in, swapOutPages: end.out - startPages.out };
+    }
+  };
+}

@@ -12,8 +12,8 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { join, relative } from 'node:path';
 import { parseArgs } from 'node:util';
 import {
-  APPS, businessOk, call, describeChange, editSource, fileSize, functionNames, machine, readRevision, record, ROOT, run, sleep, targetNames,
-  waitForRevisions
+  APPS, businessOk, call, describeChange, editSource, fileSize, functionNames, machine, readRevision, record, ROOT, run, sampleMemory, sleep,
+  targetNames, waitForRevisions
 } from './lib.mjs';
 import { commitProject, installDirs, measurements, test, TOOLS, writeProject } from './project.mjs';
 
@@ -127,13 +127,15 @@ async function packageRuns() {
       for (const output of tool.buildOutputs) rmSync(join(dir, output), { recursive: true, force: true });
     }
     const cache = values.warm ? 'warm' : 'clean';
+    const memory = sampleMemory();
     try {
       const { ms } = await ctx.run(tool.package(ctx));
+      const memoryUsed = memory.stop();
       const { bytes, artifacts } = await measureArtifacts();
-      record('package.jsonl', { app: appId, cache, run: i, ms, bytes, artifacts, ...info, at: new Date().toISOString() });
+      record('package.jsonl', { app: appId, cache, run: i, ms, bytes, artifacts, memory: memoryUsed, ...info, at: new Date().toISOString() });
       console.log(`${name} package run ${i}: ${ms} ms, ${bytes} bytes`);
     } catch (error) {
-      record('package.jsonl', { app: appId, cache, run: i, failed: true, error: String(error.message ?? error).slice(0, 500), ...info, at: new Date().toISOString() });
+      record('package.jsonl', { app: appId, cache, run: i, failed: true, error: String(error.message ?? error).slice(0, 500), memory: memory.stop(), ...info, at: new Date().toISOString() });
       console.log(`${name} package run ${i} failed: ${error.message}`);
     }
   }
@@ -162,6 +164,8 @@ async function timedChange({ journey, push, deploy }) {
     await sleep(5000);
   }
   const pushedAt = push ? new Date().toISOString() : undefined;
+  // Memory is sampled from the deploy's start until the command exits (or, for a push, until the new code serves).
+  const memory = sampleMemory();
   const started = performance.now();
   const running = deploy ? runAll(deploy) : Promise.resolve([]);
   let failed = false;
@@ -174,6 +178,7 @@ async function timedChange({ journey, push, deploy }) {
     stop: () => failed && 'the deploy command failed'
   });
   const commands = await running;
+  const memoryUsed = memory.stop();
   const commandFailed = commands.some((result) => result.code !== 0);
   const deployment = tool.deploymentResult?.({ ...ctx, log });
   // Every target must now give the right business result from the expected revision: new for changed targets, old
@@ -200,6 +205,7 @@ async function timedChange({ journey, push, deploy }) {
     readyMs: Math.round(readyAt - started),
     commandMs: commands.length ? Math.max(...commands.map((r) => r.ms)) : undefined,
     commandExitCodes: commands.length ? commands.map((r) => r.code) : undefined,
+    memory: memoryUsed,
     failed: commandFailed || undefined,
     error: commandFailed ? 'Deploy command failed after readiness; see command log' : undefined,
     businessOk: checks.every(Boolean),
