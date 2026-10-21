@@ -150,11 +150,12 @@ export default {
   // archive does. Container images go to the local Docker image store.
   artifacts({ app, dir }) {
     if (app.kind === 'service') return [{ file: 'api-service-container', bytes: imageBytes('api-service-container:latest') }];
-    const [invocation] = readdirSync(join(dir, '.stacktape'));
+    const invocation = readdirSync(join(dir, '.stacktape'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort().at(-1);
     const build = join(dir, '.stacktape', invocation, 'build');
     const files = readdirSync(join(build, 'lambdas')).filter((f) => f.endsWith('.zip') || /\.source-maps\.json(\.gz)?$/.test(f));
     const layerDir = join(build, 'layers');
-    const layers = existsSync(layerDir) ? readdirSync(layerDir, { withFileTypes: true }) : [];
+    // Deploy can leave both a layer directory and its ZIP. Count the uploaded ZIP once.
+    const layers = existsSync(layerDir) ? readdirSync(layerDir, { withFileTypes: true }).filter((e) => !e.isDirectory() || !existsSync(join(layerDir, `${e.name}.zip`))) : [];
     return [
       ...files.map((f) => ({ file: `lambdas/${f}`, path: join(build, 'lambdas', f) })),
       ...layers.map((e) =>
