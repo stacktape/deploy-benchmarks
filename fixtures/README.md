@@ -143,6 +143,8 @@ imports, so every function must be rebuilt and redeployed.
 
 `containers/node/` and `containers/python/` implement the same storefront API. The Node app uses Express, Zod, Decimal.js, Handlebars and Luxon. The Python app uses FastAPI and Pydantic, with Python's decimal and datetime libraries.
 
+The Python production `requirements.txt` is a complete transitive hash lock generated from `requirements.in` with `uv pip compile requirements.in --python-version 3.11.14 --generate-hashes --output-file requirements.txt`. Install it with `uv pip install --require-hashes -r requirements.txt`. Every deployment tool uses this same lock; it is not a Stacktape-specific fixture. Regenerate it when changing dependencies.
+
 These are two separate language tests. They are not a claim that Express and FastAPI have identical dependency sizes.
 
 Both expose these routes:
