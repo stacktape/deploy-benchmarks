@@ -26,8 +26,9 @@ and computes amount statistics with mathjs. Handlers render operational receipts
 sanitization, then serialize and parse partner CSV/XML with csv-parse/csv-stringify and fast-xml-parser.
 
 The four email handlers additionally render their actual outgoing messages with MJML. Keeping that dependency in
-those handlers represents their work and lets the 25-function app build on the 16 GB benchmark host without
-per-tool concurrency tuning. Putting MJML into all 25 handlers exhausted Serverless's build memory during setup;
+those handlers represents their work. The 25-function app builds on the 16 GB benchmark host with a common 8 GiB
+swap file and EBS temporary storage, without per-tool concurrency tuning. Serverless's builds page to disk, and their
+timings include that cost. Putting MJML into all 25 handlers exhausted Serverless's build memory during setup;
 that discarded fixture variant was never timed.
 
 The root manifest pins Juice's Undici 6 dependency to the same patch version for every tool. Without this pin,

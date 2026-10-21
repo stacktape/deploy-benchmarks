@@ -10,7 +10,7 @@ import { capture, findFunctions, imageBytes, REGION, serviceDir, sleep, STAGE, s
 // The stacktape/stacktape commit the published results were measured with. `version` checks that STACKTAPE_BIN was
 // built from it (the build's version ends in the short commit). STACKTAPE_COMMIT measures another build without
 // changing the generated files, so a Git push still continues the published branch.
-const PINNED_COMMIT = '1aba589f64ecf4b99a21de493e0a19ce32188303';
+const PINNED_COMMIT = 'b1ab238583968b11f085c620b67811acadb536e4';
 const COMMIT = process.env.STACKTAPE_COMMIT ?? PINNED_COMMIT;
 // The Stacktape project, and so the stack `<project>-bmk`, defaults to the test's name. STACKTAPE_PROJECT_NAME gives
 // a second measurement in the same AWS account its own project and stack.
