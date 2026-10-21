@@ -1,0 +1,77 @@
+{
+  "lambda-1/stacktape": {
+    "functionMaxBytes": 24439795,
+    "allLayersBytes": 0,
+    "functionWithAllLayersMaxBytes": 24439795
+  },
+  "lambda-1/serverless": {
+    "functionMaxBytes": 69829092,
+    "allLayersBytes": 0,
+    "functionWithAllLayersMaxBytes": 69829092
+  },
+  "lambda-1/sst": {
+    "functionMaxBytes": 40990272,
+    "allLayersBytes": 0,
+    "functionWithAllLayersMaxBytes": 40990272
+  },
+  "lambda-1/cdk": {
+    "functionMaxBytes": 39948983,
+    "allLayersBytes": 0,
+    "functionWithAllLayersMaxBytes": 39948983
+  },
+  "lambda-1/cdk-hotswap": {
+    "functionMaxBytes": 39948983,
+    "allLayersBytes": 0,
+    "functionWithAllLayersMaxBytes": 39948983
+  },
+  "lambda-5/stacktape": {
+    "functionMaxBytes": 3706098,
+    "allLayersBytes": 51978398,
+    "functionWithAllLayersMaxBytes": 55684496
+  },
+  "lambda-5/serverless": {
+    "functionMaxBytes": 79724013,
+    "allLayersBytes": 0,
+    "functionWithAllLayersMaxBytes": 79724013
+  },
+  "lambda-5/sst": {
+    "functionMaxBytes": 40990272,
+    "allLayersBytes": 0,
+    "functionWithAllLayersMaxBytes": 40990272
+  },
+  "lambda-5/cdk": {
+    "functionMaxBytes": 39948983,
+    "allLayersBytes": 0,
+    "functionWithAllLayersMaxBytes": 39948983
+  },
+  "lambda-5/cdk-hotswap": {
+    "functionMaxBytes": 39948983,
+    "allLayersBytes": 0,
+    "functionWithAllLayersMaxBytes": 39948983
+  },
+  "lambda-25/stacktape": {
+    "functionMaxBytes": 2078065,
+    "allLayersBytes": 55686164,
+    "functionWithAllLayersMaxBytes": 57764229
+  },
+  "lambda-25/serverless": {
+    "functionMaxBytes": 79913483,
+    "allLayersBytes": 0,
+    "functionWithAllLayersMaxBytes": 79913483
+  },
+  "lambda-25/sst": {
+    "functionMaxBytes": 40990272,
+    "allLayersBytes": 0,
+    "functionWithAllLayersMaxBytes": 40990272
+  },
+  "lambda-25/cdk": {
+    "functionMaxBytes": 39948983,
+    "allLayersBytes": 0,
+    "functionWithAllLayersMaxBytes": 39948983
+  },
+  "lambda-25/cdk-hotswap": {
+    "functionMaxBytes": 39948983,
+    "allLayersBytes": 0,
+    "functionWithAllLayersMaxBytes": 39948983
+  }
+}

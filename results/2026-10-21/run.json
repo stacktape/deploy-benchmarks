@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-21",
+  "qualification": true,
+  "awsProfile": "stacktape-e2e",
+  "awsAccount": "597581086285",
+  "region": "eu-west-1",
+  "instanceId": "i-0af726906cc90edc0",
+  "instanceName": "bmk-rerun-20261021-68a687de",
+  "instanceType": "c7i.2xlarge",
+  "harnessCheckout": "45b758b232e06a21a8a6469f290b6003bf649785",
+  "stacktapeLambdaCommit": "1aba589f64ecf4b99a21de493e0a19ce32188303",
+  "stacktapeContainerCommit": "b1ab238583968b11f085c620b67811acadb536e4",
+  "remoteStacktapeModuleSha256": "4ddbee8c32d4cc3e537433672832d724da1b9b74972b8112ffcf647f11eb20f7",
+  "fixtureManifestSha256": "ec929d327500db8345b30f04d80659f5436845cfef82f932573b4a3e145320cb",
+  "packageSamples": 300,
+  "deploySamples": 330,
+  "validDeploySamples": 330,
+  "packageCells": 30,
+  "deployCells": 33,
+  "samplesPerCell": 10,
+  "packageFirstSampleAt": "2026-10-21T05:56:12.909Z",
+  "packageLastSampleAt": "2026-10-21T08:20:56.156Z",
+  "deployFirstSampleAt": "2026-10-21T08:21:10.699Z",
+  "deployLastSampleAt": "2026-10-21T12:42:26.284Z",
+  "containerModes": {
+    "container-node": {
+      "code-swap": 10
+    },
+    "container-python": {
+      "image": 10
+    },
+    "five-services": {
+      "image": 10
+    }
+  },
+  "validation": {
+    "commandExitCodesAllZero": true,
+    "businessChecksAllPassed": true,
+    "unchangedTargetsAllPreserved": true,
+    "uniqueDeployRevisions": 330,
+    "localFixtureCheck": "25 functions passed",
+    "remoteSourceHashComparison": "293 files compared; only fixtures/README.md and tools/stacktape.mjs differ; tool difference is default source pin and comments"
+  },
+  "memory": {
+    "commonSwapGiB": 8,
+    "temporaryStorage": "EBS",
+    "perToolConcurrencyTuning": false,
+    "serverless25FunctionPagingIncluded": true
+  },
+  "rawFilesSha256": {
+    "deploy.jsonl": "9291a1470f220c0d1cd0f58acc6c335e356bee313ffb34b5d04ceff5691d118e",
+    "package.jsonl": "b31efecf1708b06c995b52d8fe3945392b62dfed8e08681a87cb21c5df776831",
+    "uncompressed.json": "5d9156e50a70f930888d90ba7df955f9554f37480677a5948fbde243428fa9e1"
+  },
+  "notRerun": [
+    "competitor containers",
+    "Git push",
+    "mixed Lambda changes"
+  ],
+  "ownerProvidedGitPushSeconds": {
+    "containerNodeStacktape": 45,
+    "containerNodeRender": 34,
+    "lambda5Stacktape": 54,
+    "lambda25Stacktape": 61,
+    "source": [
+      "stacktape/stacktape#255",
+      "stacktape/console-app#104"
+    ],
+    "sampleCountsAndRanges": "not supplied; separate measurements, not samples in this qualification"
+  },
+  "cleanupVerificationFile": "cleanup.json"
+}

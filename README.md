@@ -49,6 +49,143 @@ Replace `sst lambda-25` with any tool and application from the list of branches.
 
 <!-- /generated:credentials -->
 
+## 21 October 2026 focused qualification
+
+This branch records the larger Lambda fixtures and Stacktape's opt-in container code swap. Packaging samples ran
+05:56–08:20 UTC; deploy samples ran 08:21–12:42 UTC on 21 October. These are qualification measurements of source
+builds, not released-CLI launch numbers. The 17 October results below remain the baseline.
+
+- **Machine:** dedicated EC2 `i-0af726906cc90edc0`, Name `bmk-rerun-20261021-68a687de`, `c7i.2xlarge`
+  (8 vCPUs, 16 GB), Amazon Linux 2023, Node.js 24.15.0, in `eu-west-1`. All tools shared the 8 GiB swap file and
+  EBS temporary directory; there was no per-tool concurrency tuning. Serverless's 25-function builds paged to disk.
+- **Scope:** Lambda `lambda-1`, `lambda-5`, `lambda-25` for Stacktape, Serverless 4.44.0, SST 4.17.2, CDK CLI
+  2.1145.0 and CDK hotswap: ten clean and ten warm packaging samples, ten handler changes and ten shared changes
+  per tool/app. Stacktape additionally has ten CLI deployments per container app with `codeSwap: true`.
+  Mixed changes and Git-push journeys were not rerun. Competitor container results remain from 17 October.
+- **Stacktape revisions:** Lambda `4.0.0-bench.1aba589f`, source
+  [`1aba589f`](https://github.com/stacktape/stacktape/commit/1aba589f64ecf4b99a21de493e0a19ce32188303);
+  containers `4.0.0-bench.b1ab2385`, source
+  [`b1ab2385`](https://github.com/stacktape/stacktape/commit/b1ab238583968b11f085c620b67811acadb536e4), including
+  the release supervisor fix. Set `STACKTAPE_COMMIT` to the applicable revision when reproducing each series.
+  The remote harness checkout was `45b758b232e06a21a8a6469f290b6003bf649785`; its Stacktape default pin was
+  `1aba589f`, with the container revision supplied through the environment.
+- **Order and validation:** packaging ran serially; Lambda deploys ran by app and then in ten rounds, rotating
+  through tools and handler/shared changes. The container series overlapped the Lambda series. All 300 packaging
+  samples and all 330 deploy samples passed; each deploy returned exit code zero, served the expected revision,
+  passed business checks, and preserved unchanged services. Each of the 63 measured cells has ten valid samples.
+  The maximum unpacked function including all its layers was 79.91 MB, below the run's 200 MiB guard and Lambda's
+  250 MiB limit. The local fixture check also passed all 25 handlers.
+- **Data:** [`results/2026-10-21/`](results/2026-10-21), the
+  [complete report](results/2026-10-21/report.md), and the
+  [cell-by-cell comparison with 17 October](results/2026-10-21/comparison.md).
+  Reproduce the report with `BENCH_RESULTS_DIR=results/2026-10-21 node report.mjs --markdown`.
+  Its final resume table comes from the historical `results-extra/` samples, not this run.
+
+Every new cell below is median (minimum–maximum), ten valid runs. Upload sizes use decimal MB and count each shared
+layer once. The same application source and production dependency locks went to every tool. See
+[the fixture description](fixtures/README.md) for the real integrations and document processing added on 21 October.
+
+
+**Lambda packaging, empty build cache: seconds**
+
+| App | Stacktape | Serverless | SST | AWS CDK | CDK hotswap |
+| --- | --- | --- | --- | --- | --- |
+| `lambda-1` | 2.3 (2.2–2.3) | 5.7 (5.6–5.9) | 7.0 (6.9–7.3) | 3.3 (3.2–3.4) | 3.3 (3.2–3.4) |
+| `lambda-5` | 6.4 (5.2–6.5) | 9.2 (9.1–9.4) | 9.6 (9.4–9.8) | 5.6 (5.5–5.7) | 5.5 (5.5–5.6) |
+| `lambda-25` | 9.1 (8.0–9.3) | 204.7 (161.6–308.4) | 22.5 (22.2–23.3) | 16.6 (16.6–16.7) | 16.6 (16.5–17.0) |
+
+**Lambda packaging, source change: seconds**
+
+| App | Stacktape | Serverless | SST | AWS CDK | CDK hotswap |
+| --- | --- | --- | --- | --- | --- |
+| `lambda-1` | 2.2 (2.2–2.3) | 5.7 (5.6–5.8) | 7.2 (7.0–7.6) | 3.3 (3.2–3.4) | 3.3 (3.2–3.4) |
+| `lambda-5` | 6.4 (5.2–6.8) | 9.2 (9.0–9.4) | 10.1 (10.0–10.3) | 5.5 (5.5–5.7) | 5.5 (5.4–5.6) |
+| `lambda-25` | 9.1 (8.0–9.3) | 253.4 (130.1–348.0) | 23.3 (22.5–23.6) | 16.9 (16.7–17.3) | 16.9 (16.7–17.3) |
+
+**Lambda upload size: MB, functions, layers and source maps**
+
+| App | Stacktape | Serverless | SST | AWS CDK | CDK hotswap |
+| --- | --- | --- | --- | --- | --- |
+| `lambda-1` | 7.79 (7.79–7.79) | 19.87 (19.87–19.87) | 44.07 (44.07–44.07) | 10.33 (10.33–10.33) | 10.33 (10.33–10.33) |
+| `lambda-5` | 19.52 (19.52–19.52) | 96.08 (96.08–96.08) | 178.31 (178.31–178.31) | 25.31 (25.31–25.31) | 25.31 (25.31–25.31) |
+| `lambda-25` | 19.54 (19.54–19.54) | 464.31 (464.31–464.31) | 817.56 (817.56–817.56) | 96.47 (96.47–96.47) | 96.47 (96.47–96.47) |
+
+**Lambda CLI deploy, handler changes: seconds until new code serves**
+
+| App | Stacktape | Serverless | SST | AWS CDK | CDK hotswap |
+| --- | --- | --- | --- | --- | --- |
+| `lambda-1` | 10.6 (10.1–13.3) | 22.1 (21.6–24.9) | 15.1 (14.6–18.3) | 22.3 (21.3–32.5) | 13.1 (12.6–14.9) |
+| `lambda-5` | 15.6 (13.9–16.6) | 27.2 (26.4–28.4) | 18.2 (17.8–20.8) | 25.6 (25.1–27.4) | 16.2 (16.0–20.4) |
+| `lambda-25` | 21.2 (20.7–22.7) | 361.9 (196.0–418.7) | 43.2 (42.7–44.3) | 71.0 (49.3–78.0) | 38.0 (36.5–39.7) |
+
+**Lambda CLI deploy, shared-package change: seconds until new code serves**
+
+| App | Stacktape | Serverless | SST | AWS CDK | CDK hotswap |
+| --- | --- | --- | --- | --- | --- |
+| `lambda-1` | 10.6 (10.4–11.2) | 21.8 (21.6–23.5) | 15.1 (14.5–15.5) | 22.2 (21.3–22.8) | 13.1 (12.3–13.7) |
+| `lambda-5` | 30.7 (30.1–32.8) | 26.5 (25.8–27.8) | 18.1 (17.6–18.5) | 26.1 (25.1–35.6) | 16.2 (15.9–16.5) |
+| `lambda-25` | 51.4 (49.8–53.3) | 363.0 (214.5–468.0) | 33.4 (31.3–34.5) | 67.9 (45.7–74.7) | 35.7 (33.0–36.6) |
+
+**Container CLI deploy: seconds until new code serves**
+
+Stacktape: 21 October, `codeSwap: true`. Competitors: unchanged 17 October measurements.
+
+| App | Stacktape opt-in | Stacktape 17 Oct image | SST 17 Oct | AWS CDK 17 Oct | CDK hotswap 17 Oct | Heroku 17 Oct |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container-node` | 4.1 (4.0–5.1) | 40.1 (32.1–50.1) | 138.6 (49.0–168.1) | 68.1 (60.0–78.1) | 49.5 (36.0–64.1) | 28.0 (25.0–30.1) |
+| `container-python` | 55.1 (37.1–72.1) | 47.6 (39.1–65.1) | 96.6 (44.0–428.2) [1 failed] | 66.1 (61.0–85.1) | 40.5 (36.0–58.1) | 21.6 (19.1–47.1) |
+| `five-services` | 64.6 (48.1–81.1) | 57.6 (38.1–63.1) | 73.0 (54.0–408.2) [1 failed] | 77.6 (72.1–86.1) | 54.5 (46.0–58.0) | 30.5 (28.0–64.1) |
+
+**What Stacktape wins and loses**
+
+- Stacktape has the smallest upload for all three Lambda apps. At 25 functions its shared layers keep the complete
+  upload at 19.54 MB, versus CDK's 96.47 MB, Serverless's 464.31 MB and SST's 817.56 MB. The larger dependency graph
+  is uploaded once in shared layers rather than repeated in each function bundle.
+- Stacktape wins handler-change deployment for all three Lambda apps, and the single-function shared change.
+  Handler-only updates reuse the shared layer and update function code directly.
+- Stacktape wins clean/warm packaging at one and 25 functions. It loses both five-function packaging rows to CDK
+  and CDK hotswap (6.4 s versus about 5.5 s). Its shared-layer build has overhead at this scale; the smaller upload
+  does not imply faster packaging. These timings do not include layer zipping that happens during deploy.
+- Stacktape loses the five-function shared change to every competitor (30.7 s versus 16.2–26.5 s), and the
+  25-function shared change to SST and CDK hotswap (51.4 s versus 33.4/35.7 s). Changing the shared package changes
+  the layer, requiring a CloudFormation update rather than the direct function-code path. Representative CLI phase
+  summaries spent 22.8 s and 42.8 s in Deploy for five and 25 functions, after 6.9 s and 11.7 s in Build & Package.
+  Shared upload savings do not eliminate CloudFormation's update time.
+- Node's ten opt-in container samples all used code swap: 4.1 s (4.0–5.1), versus Stacktape's 17 October image
+  deployment at 40.1 s (32.1–50.1). This wins against the retained container competitor measurements.
+- Python's ten samples all used image fallback because only Node.js `js-bundle` packaging is qualified for code
+  swap. Five-services also used image fallback because this release supports one container service per stack.
+  Python (55.1 s) and five-services (64.6 s) lose to Heroku and CDK hotswap's 17 October medians. Image building and
+  ECS task rollout remain on their deployment path. Their ranges overlap the previous Stacktape image results;
+  opting in did not enable a swap for either app.
+- Serverless's 25-function packaging and deploy times include substantial paging on this 16 GB host. All tools
+  received the same memory/swap setup. Those costs remain in the measurements rather than being excluded.
+
+**Git-push scope decision (owner-provided, not measured in this rerun)**
+
+The owner dropped the cold Git-push container test. After the runner preparation fix in
+[stacktape#255](https://github.com/stacktape/stacktape/pull/255) and
+[console-app#104](https://github.com/stacktape/console-app/pull/104), Stacktape still loses: about 45 s versus
+Render's 34 s. Cold Lambda Git push is now about 54 s for `lambda-5` and 61 s for `lambda-25` in those PRs.
+Those are separate Stacktape-only measurements; no competitor Git-push journeys were rerun here, and these point
+values have no range or sample count supplied with this handoff. They do not replace the historical raw series.
+
+
+**Cleanup verification**
+
+All `bmk-*` CloudFormation stacks were deleted, using the harness removal commands first. API Gateway throttling
+required retries and individual VPC-link deletion before the last stack could be removed. The EC2 instance is
+terminated; its 200 GB root volume, security group, key pair, IAM role and instance profile are absent. SST's state
+and asset buckets, asset repository, bootstrap parameter and six app passphrase parameters were removed. The 1,391
+recorded CDK file assets and their object versions were deleted while retaining `CDKToolkit` and its bucket.
+Benchmark log groups were removed. Only `CDKToolkit` and `stacktape-cmu16jloi000007q2pix3alju` remain as stacks.
+
+ECS accepted deletion of 53 task-definition revisions. They are still `DELETE_IN_PROGRESS`; there are no ECS
+clusters or active/inactive task definitions. AWS can take up to 24 hours to finish removing task-definition metadata
+after its service deployments are deleted ([AWS documentation](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-definition-state.html)).
+That final metadata removal remains pending. The exact verification and timestamp are in
+[`cleanup.json`](results/2026-10-21/cleanup.json).
+
 ## Results
 
 These are the results of a **qualification run** on 17 October 2026, between 13:47 and 20:37 UTC. It checked the

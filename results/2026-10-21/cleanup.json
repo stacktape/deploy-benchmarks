@@ -1,0 +1,47 @@
+{
+  "verifiedAt": "2026-10-21T13:03:19Z",
+  "profile": "stacktape-e2e",
+  "region": "eu-west-1",
+  "remainingStacks": [
+    {
+      "name": "CDKToolkit",
+      "status": "CREATE_COMPLETE"
+    },
+    {
+      "name": "stacktape-cmu16jloi000007q2pix3alju",
+      "status": "CREATE_COMPLETE"
+    }
+  ],
+  "benchmarkStacksRemaining": 0,
+  "instanceState": "terminated",
+  "absent": [
+    "rootVolume",
+    "securityGroup",
+    "keyPair",
+    "role",
+    "instanceProfile",
+    "sstStateBucket",
+    "sstAssetBucket",
+    "sstAssetRepository",
+    "sstBootstrapParameter"
+  ],
+  "sstBenchmarkPassphrasesRemoved": 6,
+  "remainingBenchmarkFunctions": 0,
+  "remainingBenchmarkClusters": 0,
+  "remainingVpcLinks": 0,
+  "remainingBenchmarkLogGroups": 0,
+  "remainingLoadBalancers": 0,
+  "taskDefinitionStates": {
+    "ACTIVE": 0,
+    "INACTIVE": 0,
+    "DELETE_IN_PROGRESS": 53
+  },
+  "taskDefinitionFinalDeletion": "AWS asynchronous final deletion remains pending for DELETE_IN_PROGRESS revisions; no ECS clusters remain.",
+  "taskDefinitionDeletionDocumentation": "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-definition-state.html",
+  "retainedAssetsCleanup": {
+    "at": "2026-10-21T13:00:24Z",
+    "cdkAssetCount": 1391,
+    "taskDefinitions": 53
+  },
+  "removalMethod": "Harness remove commands for all 18 tool/app deployments; repeated Stacktape deletes for transient VPC-link errors; remaining VPC links deleted individually with throttling backoff, then final CloudFormation stack removed. SST bootstrap, recorded CDK assets and retained logs/task revisions removed separately."
+}
