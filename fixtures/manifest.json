@@ -76,7 +76,23 @@
           "input": {},
           "expected": {
             "status": "pending",
-            "total": "33.00"
+            "total": "33.00",
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\ncreate-order,33.00,USD\n"
+            }
           }
         }
       },
@@ -90,7 +106,23 @@
           "expected": {
             "status": "paid",
             "total": "33.00",
-            "items": 2
+            "items": 2,
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nget-order,33.00,USD\n"
+            }
           }
         }
       },
@@ -111,7 +143,23 @@
                 "id": "tea",
                 "price": "6.25"
               }
-            ]
+            ],
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nlist-products,33.00,USD\n"
+            }
           }
         }
       },
@@ -124,7 +172,23 @@
           "input": {},
           "expected": {
             "accepted": true,
-            "orderId": "ord_101"
+            "orderId": "ord_101",
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nstripe-webhook,33.00,USD\n"
+            }
           }
         }
       },
@@ -138,7 +202,23 @@
           "expected": {
             "batchItemFailures": [],
             "to": "alex@example.test",
-            "subject": "Order ord_100 confirmed"
+            "subject": "Order ord_100 confirmed",
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\norder-confirmation-email,33.00,USD\n"
+            }
           }
         }
       },
@@ -151,7 +231,23 @@
           "input": {},
           "expected": {
             "batchItemFailures": [],
-            "amount": 3300
+            "amount": 3300,
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\npayment-capture,33.00,USD\n"
+            }
           }
         }
       },
@@ -164,7 +260,23 @@
           "input": {},
           "expected": {
             "batchItemFailures": [],
-            "reserved": 2
+            "reserved": 2,
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\ninventory-reservation,33.00,USD\n"
+            }
           }
         }
       },
@@ -178,7 +290,23 @@
           "expected": {
             "batchItemFailures": [],
             "carrier": "UPS",
-            "weightGrams": 2500
+            "weightGrams": 2500,
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nfulfilment-dispatch,33.00,USD\n"
+            }
           }
         }
       },
@@ -191,7 +319,23 @@
           "input": {},
           "expected": {
             "batchItemFailures": [],
-            "amount": 800
+            "amount": 800,
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nrefund-processor,33.00,USD\n"
+            }
           }
         }
       },
@@ -205,7 +349,23 @@
           "expected": {
             "batchItemFailures": [],
             "eligible": true,
-            "days": 17
+            "days": 17,
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nreturn-request,33.00,USD\n"
+            }
           }
         }
       },
@@ -218,7 +378,23 @@
           "input": {},
           "expected": {
             "batchItemFailures": [],
-            "needsHumanReview": false
+            "needsHumanReview": false,
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nreview-moderation,33.00,USD\n"
+            }
           }
         }
       },
@@ -231,7 +407,23 @@
           "input": {},
           "expected": {
             "batchItemFailures": [],
-            "model": "gpt-5-mini"
+            "model": "gpt-5-mini",
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nproduct-description,33.00,USD\n"
+            }
           }
         }
       },
@@ -244,7 +436,23 @@
           "input": {},
           "expected": {
             "batchItemFailures": [],
-            "points": 66
+            "points": 66,
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nloyalty-points,33.00,USD\n"
+            }
           }
         }
       },
@@ -257,7 +465,23 @@
           "input": {},
           "expected": {
             "batchItemFailures": [],
-            "decision": "approve"
+            "decision": "approve",
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nfraud-check,33.00,USD\n"
+            }
           }
         }
       },
@@ -271,7 +495,23 @@
           "expected": {
             "batchItemFailures": [],
             "total": "33.00",
-            "to": "alex@example.test"
+            "to": "alex@example.test",
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\ninvoice-email,33.00,USD\n"
+            }
           }
         }
       },
@@ -284,7 +524,23 @@
           "input": {},
           "expected": {
             "batchItemFailures": [],
-            "rows": 1
+            "rows": 1,
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\ncustomer-sync,33.00,USD\n"
+            }
           }
         }
       },
@@ -297,7 +553,23 @@
           "input": {},
           "expected": {
             "batchItemFailures": [],
-            "emailed": "alex@example.test"
+            "emailed": "alex@example.test",
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\ndelivery-notification,33.00,USD\n"
+            }
           }
         }
       },
@@ -323,7 +595,23 @@
                 "type": "docx",
                 "prefix": "PK"
               }
-            ]
+            ],
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nsales-report,33.00,USD\n"
+            }
           }
         }
       },
@@ -335,7 +623,23 @@
         "probe": {
           "input": {},
           "expected": {
-            "checked": 1
+            "checked": 1,
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nshipment-tracking-sync,33.00,USD\n"
+            }
           }
         }
       },
@@ -349,7 +653,23 @@
           "expected": {
             "lowStock": [
               "mug"
-            ]
+            ],
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nlow-stock-alert,33.00,USD\n"
+            }
           }
         }
       },
@@ -362,7 +682,23 @@
           "input": {},
           "expected": {
             "orders": 1,
-            "revenue": "33.00"
+            "revenue": "33.00",
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\ndaily-sales-summary,33.00,USD\n"
+            }
           }
         }
       },
@@ -376,7 +712,23 @@
           "expected": {
             "reminded": [
               "sam@example.test"
-            ]
+            ],
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nabandoned-cart-reminder,33.00,USD\n"
+            }
           }
         }
       },
@@ -388,7 +740,23 @@
         "probe": {
           "input": {},
           "expected": {
-            "products": 3
+            "products": 3,
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nproduct-feed-export,33.00,USD\n"
+            }
           }
         }
       },
@@ -400,7 +768,23 @@
         "probe": {
           "input": {},
           "expected": {
-            "queued": 1
+            "queued": 1,
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\nsupplier-reorder,33.00,USD\n"
+            }
           }
         }
       },
@@ -412,7 +796,23 @@
         "probe": {
           "input": {},
           "expected": {
-            "archived": 0
+            "archived": 0,
+            "audit": {
+              "document": {
+                "customer": {
+                  "country": "USA",
+                  "phone": "+12025550123",
+                  "average": 16.5,
+                  "deviation": 12.02
+                }
+              },
+              "tags": {
+                "operation": "shop-operation"
+              }
+            },
+            "receipt": {
+              "csv": "operation,total,currency\ndata-retention-cleanup,33.00,USD\n"
+            }
           }
         }
       }
