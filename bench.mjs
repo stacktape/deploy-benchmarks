@@ -174,6 +174,7 @@ async function timedChange({ journey, push, deploy }) {
     stop: () => failed && 'the deploy command failed'
   });
   const commands = await running;
+  const commandFailed = commands.some((result) => result.code !== 0);
   const deployment = tool.deploymentResult?.({ ...ctx, log });
   // Every target must now give the right business result from the expected revision: new for changed targets, old
   // for unchanged ones. During a rolling update a load balancer still sends some requests to the old task, so a
@@ -198,6 +199,9 @@ async function timedChange({ journey, push, deploy }) {
     pushedAt,
     readyMs: Math.round(readyAt - started),
     commandMs: commands.length ? Math.max(...commands.map((r) => r.ms)) : undefined,
+    commandExitCodes: commands.length ? commands.map((r) => r.code) : undefined,
+    failed: commandFailed || undefined,
+    error: commandFailed ? 'Deploy command failed after readiness; see command log' : undefined,
     businessOk: checks.every(Boolean),
     unchangedOk: unexpected.length === 0,
     unexpected

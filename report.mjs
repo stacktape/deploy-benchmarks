@@ -57,7 +57,7 @@ table('Container image size', packages.filter(isContainer), (r) => `${r.app} ${r
 // A series measured separately can keep its rows in its own deploy-<name>.jsonl. A row with `excluded` was found
 // invalid after the run; it stays in the data with the reason.
 const deploys = (existsSync(join(ROOT, RESULTS_DIR)) ? readdirSync(join(ROOT, RESULTS_DIR)) : []).filter((f) => /^deploy(-[\w-]+)?\.jsonl$/.test(f)).sort().flatMap((file) => load(file));
-const ok = (r) => r.businessOk && r.unchangedOk && !r.excluded;
+const ok = (r) => !r.failed && r.businessOk && r.unchangedOk && !r.excluded;
 table('Time from deploy start (or git push return) until the new code serves', deploys, (r) => `${r.app} ${r.tool} ${r.journey} ${r.change}${r.codeSwapOptIn ? ' opt-in' : ''}`, [
   ['valid', (g) => `${g.filter(ok).length}`],
   ['excluded', (g) => `${g.filter((r) => !ok(r)).length}`],
