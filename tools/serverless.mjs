@@ -18,6 +18,9 @@ const common = ['--stage', STAGE, '--region', REGION];
 // - PDFKit reads its font files from disk, so it is `external` and Serverless installs it into the package.
 // - The banner gives the ES module output a `require`, which CommonJS dependencies such as ExcelJS call for Node.js
 //   built-ins.
+// - `buildConcurrency: 8`, the benchmark machine's vCPU count. By default Serverless builds and zips every function at
+//   once. For 25 functions that peaked at about 19 GB of memory, more than the 16 GB machine has, so the build swapped.
+//   At 8 it peaked at about 9 GB. The setting has no effect on the 1- and 5-function apps.
 const config = ({ app, name }) => `service: ${name}
 frameworkVersion: '${VERSION}'
 provider:
@@ -30,6 +33,7 @@ package:
   individually: true
 build:
   esbuild:
+    buildConcurrency: 8
     external:
       - pdfkit
     banner:

@@ -27,9 +27,10 @@ sanitization, then serialize and parse partner CSV/XML with csv-parse/csv-string
 
 The four email handlers additionally render their actual outgoing messages with MJML. Keeping that dependency in
 those handlers represents their work. The 25-function app builds on the 16 GB benchmark host with a common 8 GiB
-swap file and EBS temporary storage, without per-tool concurrency tuning. Serverless's builds page to disk, and their
-timings include that cost. Putting MJML into all 25 handlers exhausted Serverless's build memory during setup;
-that discarded fixture variant was never timed.
+swap file and EBS temporary storage. Serverless builds every function at once by default; for this app that needs
+more memory than the host has, so the Serverless configuration limits it with `buildConcurrency: 8` (see the main
+README). Putting MJML into all 25 handlers exhausted Serverless's build memory during setup; that discarded fixture
+variant was never timed.
 
 The root manifest pins Juice's Undici 6 dependency to the same patch version for every tool. Without this pin,
 Serverless's existing tool lock reused 6.29.0 while the other projects installed 6.29.1. This is a common application
@@ -143,7 +144,7 @@ imports, so every function must be rebuilt and redeployed.
 
 `containers/node/` and `containers/python/` implement the same storefront API. The Node app uses Express, Zod, Decimal.js, Handlebars and Luxon. The Python app uses FastAPI and Pydantic, with Python's decimal and datetime libraries.
 
-The Python production `requirements.txt` is a complete transitive hash lock generated from `requirements.in` with `uv pip compile requirements.in --python-version 3.11.14 --generate-hashes --output-file requirements.txt`. Install it with `uv pip install --require-hashes -r requirements.txt`. Every deployment tool uses this same lock; it is not a Stacktape-specific fixture. Regenerate it when changing dependencies.
+The Python production `requirements.txt` is a complete transitive hash lock generated from `requirements.in` with `uv pip compile requirements.in --python-version 3.11.14 --generate-hashes --output-file requirements.txt`. No deployment configuration passes `--require-hashes`. The SST and AWS CDK Dockerfiles run `pip install --no-cache-dir -r requirements.txt` and Render runs `pip install -r requirements.txt`; pip turns on hash checking by itself when a requirements file pins hashes. Stacktape's `buildpack` packaging, Heroku and Ravion install the same file with their own Python build steps. Every deployment tool uses this same lock; it is not a Stacktape-specific fixture. Regenerate it when changing dependencies.
 
 These are two separate language tests. They are not a claim that Express and FastAPI have identical dependency sizes.
 

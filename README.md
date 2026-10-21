@@ -57,7 +57,8 @@ builds, not released-CLI launch numbers. The 17 October results below remain the
 
 - **Machine:** dedicated EC2 `i-0af726906cc90edc0`, Name `bmk-rerun-20261021-68a687de`, `c7i.2xlarge`
   (8 vCPUs, 16 GB), Amazon Linux 2023, Node.js 24.15.0, in `eu-west-1`. All tools shared the 8 GiB swap file and
-  EBS temporary directory; there was no per-tool concurrency tuning. Serverless's 25-function builds paged to disk.
+  EBS temporary directory; there was no per-tool concurrency tuning. Serverless's 25-function builds paged to disk,
+  so its `lambda-25` numbers below are not a fair measurement (see note [a]).
 - **Scope:** Lambda `lambda-1`, `lambda-5`, `lambda-25` for Stacktape, Serverless 4.44.0, SST 4.17.2, CDK CLI
   2.1145.0 and CDK hotswap: ten clean and ten warm packaging samples, ten handler changes and ten shared changes
   per tool/app. Stacktape additionally has ten CLI deployments per container app with `codeSwap: true`.
@@ -92,7 +93,7 @@ layer once. The same application source and production dependency locks went to 
 | --- | --- | --- | --- | --- | --- |
 | `lambda-1` | 2.3 (2.2–2.3) | 5.7 (5.6–5.9) | 7.0 (6.9–7.3) | 3.3 (3.2–3.4) | 3.3 (3.2–3.4) |
 | `lambda-5` | 6.4 (5.2–6.5) | 9.2 (9.1–9.4) | 9.6 (9.4–9.8) | 5.6 (5.5–5.7) | 5.5 (5.5–5.6) |
-| `lambda-25` | 9.1 (8.0–9.3) | 204.7 (161.6–308.4) | 22.5 (22.2–23.3) | 16.6 (16.6–16.7) | 16.6 (16.5–17.0) |
+| `lambda-25` | 9.1 (8.0–9.3) | 204.7 (161.6–308.4) [a] | 22.5 (22.2–23.3) | 16.6 (16.6–16.7) | 16.6 (16.5–17.0) |
 
 **Lambda packaging, source change: seconds**
 
@@ -100,7 +101,7 @@ layer once. The same application source and production dependency locks went to 
 | --- | --- | --- | --- | --- | --- |
 | `lambda-1` | 2.2 (2.2–2.3) | 5.7 (5.6–5.8) | 7.2 (7.0–7.6) | 3.3 (3.2–3.4) | 3.3 (3.2–3.4) |
 | `lambda-5` | 6.4 (5.2–6.8) | 9.2 (9.0–9.4) | 10.1 (10.0–10.3) | 5.5 (5.5–5.7) | 5.5 (5.4–5.6) |
-| `lambda-25` | 9.1 (8.0–9.3) | 253.4 (130.1–348.0) | 23.3 (22.5–23.6) | 16.9 (16.7–17.3) | 16.9 (16.7–17.3) |
+| `lambda-25` | 9.1 (8.0–9.3) | 253.4 (130.1–348.0) [a] | 23.3 (22.5–23.6) | 16.9 (16.7–17.3) | 16.9 (16.7–17.3) |
 
 **Lambda upload size: MB, functions, layers and source maps**
 
@@ -116,7 +117,7 @@ layer once. The same application source and production dependency locks went to 
 | --- | --- | --- | --- | --- | --- |
 | `lambda-1` | 10.6 (10.1–13.3) | 22.1 (21.6–24.9) | 15.1 (14.6–18.3) | 22.3 (21.3–32.5) | 13.1 (12.6–14.9) |
 | `lambda-5` | 15.6 (13.9–16.6) | 27.2 (26.4–28.4) | 18.2 (17.8–20.8) | 25.6 (25.1–27.4) | 16.2 (16.0–20.4) |
-| `lambda-25` | 21.2 (20.7–22.7) | 361.9 (196.0–418.7) | 43.2 (42.7–44.3) | 71.0 (49.3–78.0) | 38.0 (36.5–39.7) |
+| `lambda-25` | 21.2 (20.7–22.7) | 361.9 (196.0–418.7) [a] | 43.2 (42.7–44.3) | 71.0 (49.3–78.0) | 38.0 (36.5–39.7) |
 
 **Lambda CLI deploy, shared-package change: seconds until new code serves**
 
@@ -124,11 +125,25 @@ layer once. The same application source and production dependency locks went to 
 | --- | --- | --- | --- | --- | --- |
 | `lambda-1` | 10.6 (10.4–11.2) | 21.8 (21.6–23.5) | 15.1 (14.5–15.5) | 22.2 (21.3–22.8) | 13.1 (12.3–13.7) |
 | `lambda-5` | 30.7 (30.1–32.8) | 26.5 (25.8–27.8) | 18.1 (17.6–18.5) | 26.1 (25.1–35.6) | 16.2 (15.9–16.5) |
-| `lambda-25` | 51.4 (49.8–53.3) | 363.0 (214.5–468.0) | 33.4 (31.3–34.5) | 67.9 (45.7–74.7) | 35.7 (33.0–36.6) |
+| `lambda-25` | 51.4 (49.8–53.3) | 363.0 (214.5–468.0) [a] | 33.4 (31.3–34.5) | 67.9 (45.7–74.7) | 35.7 (33.0–36.6) |
+
+[a] Affected by memory pressure; pending re-measurement. Serverless 4.44 builds and zips every function at the same
+time by default (`build.esbuild.buildConcurrency` defaults to the number of functions). With the 21 October fixture,
+25 parallel builds need more memory than the 16 GB benchmark machine has, so the machine swapped. Packaging the same
+project on a 43 GB development machine, limited to 8 CPUs, peaked at about 19 GB of memory for the default and about
+9 GB with `buildConcurrency: 8`. On 17 October, with the smaller fixture, Serverless packaged `lambda-25` in 19.5 s.
+A user who hit this would limit the build concurrency, so the configuration now sets `buildConcurrency: 8`, the
+machine's vCPU count (see
+[Serverless Framework](#serverless-framework)). These four cells were measured before that change. The other tools'
+25-function timings varied by about one second, with no sign of swapping, so no other tool's settings changed.
 
 **Container CLI deploy: seconds until new code serves**
 
 Stacktape: 21 October, `codeSwap: true`. Competitors: unchanged 17 October measurements.
+
+This table mixes dates: Stacktape's code swap ran on 21 October, while the competitor and Stacktape image rollouts
+ran on 17 October. AWS conditions on the two days can differ. The next full rerun will measure the competitors'
+container deployments on the same day as Stacktape.
 
 | App | Stacktape opt-in | Stacktape 17 Oct image | SST 17 Oct | AWS CDK 17 Oct | CDK hotswap 17 Oct | Heroku 17 Oct |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -158,8 +173,9 @@ Stacktape: 21 October, `codeSwap: true`. Competitors: unchanged 17 October measu
   Python (55.1 s) and five-services (64.6 s) lose to Heroku and CDK hotswap's 17 October medians. Image building and
   ECS task rollout remain on their deployment path. Their ranges overlap the previous Stacktape image results;
   opting in did not enable a swap for either app.
-- Serverless's 25-function packaging and deploy times include substantial paging on this 16 GB host. All tools
-  received the same memory/swap setup. Those costs remain in the measurements rather than being excluded.
+- Serverless's 25-function packaging and deploy times include substantial paging on this 16 GB host, caused by its
+  default build concurrency (note [a]). They are not a fair comparison and will be re-measured with
+  `buildConcurrency: 8`. Do not quote them as Serverless's speed.
 
 **Git-push scope decision (owner-provided, not measured in this rerun)**
 
@@ -763,6 +779,12 @@ numbers remain in the original `results/` series. Compare the opt-in results sep
   [`serverless-plugin-typescript`](https://www.npmjs.com/package/serverless-plugin-typescript) 0.5 million. Weekly,
   [version 3 had 681,000 downloads and version 4 had 511,000](https://www.npmjs.com/package/serverless?activeTab=versions)
   (October 2026).
+- `build.esbuild.buildConcurrency: 8`, the benchmark machine's vCPU count. By default Serverless builds and zips all
+  functions at once. For the 25-function app that peaked at about 19 GB of memory, more than the 16 GB machine has,
+  so the machine swapped. With 8 parallel builds it peaked at about 9 GB. Bundling is CPU-bound, so running more
+  parallel builds than the machine has vCPUs does not finish sooner. [Serverless's build guide](https://www.serverless.com/framework/docs/providers/aws/guide/building)
+  documents this setting for limiting concurrency. It changes nothing for the 1- and 5-function apps. The 21 October
+  `lambda-25` Serverless results were measured with the default and are marked as pending re-measurement.
 - `serverless deploy function` is faster for a single function, but it is a separate command and skips
   CloudFormation, so we use `serverless deploy`.
 - Git push: GitHub Actions, using the
@@ -848,6 +870,7 @@ numbers remain in the original `results/` series. Compare the opt-in results sep
 | --- | --- | --- |
 | Keep `pdfkit` out of the bundle and install it as a package: `build.esbuild.external` (Serverless), `nodejs.install` (SST), `bundling.nodeModules` (CDK) | Serverless Framework, SST, AWS CDK | PDFKit reads its font files from disk. Bundled, the sales report fails with `ENOENT ... Helvetica.afm`. We checked that each of these tools fails without the setting. Stacktape detects such packages itself. Serverless applies `external` to every function, so each function's ZIP contains PDFKit. |
 | `package.individually: true` | Serverless Framework | By default all functions share one ZIP. For 25 functions that ZIP holds every bundle and source map, over 600 MB unpacked; Lambda accepts at most 250 MB. |
+| `build.esbuild.buildConcurrency: 8` | Serverless Framework | By default Serverless builds and zips all functions at once. For 25 functions that needs about 19 GB of memory, more than the 16 GB benchmark machine has, and the machine swaps. Eight, the machine's vCPU count, peaks at about 9 GB. |
 | An esbuild `banner` that defines `require` | Serverless Framework | Serverless bundles this ES module project to an ES module, where CommonJS dependencies (ExcelJS, among others) cannot `require` Node.js built-ins. The import uses a distinct alias so it cannot collide with dependencies that also import `createRequire`. The banner is the fix in [Serverless's build guide](https://www.serverless.com/framework/docs/providers/aws/guide/building). Stacktape bundles to CommonJS and needs no setting. |
 | Load balancer health check path `/health` | SST, AWS CDK | The default path `/` returns 404 in these applications, so the services would never become healthy. |
 | A Dockerfile | SST, AWS CDK | Both need one to build a container. Stacktape, Render, Heroku and Ravion build from the source. |
