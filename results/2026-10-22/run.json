@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-22",
+  "qualification": true,
+  "awsProfile": "stacktape-e2e",
+  "awsAccount": "597581086285",
+  "region": "eu-west-1",
+  "instanceId": "i-0106242a6e01aa4f2",
+  "instanceName": "bmk-rerun-20261022",
+  "instanceType": "c7i.2xlarge",
+  "machine": "Amazon Linux 2023, Node.js 24.15.0, Docker 29.7.2 (containerd image store), buildx 0.38.0, Heroku CLI 11.12.0, 8 GiB swap file, TMPDIR on EBS",
+  "harnessCheckout": "5296549bc0849fd549d4362a3f96603a0ef03889",
+  "stacktapeCommit": "028ef1a78e30f30e4fd37c3f0c383f61842b1175",
+  "stacktapeVersion": "4.0.0-bench.028ef1a7",
+  "stacktapeBuild": "Built on the WSL development machine with Node.js 24.15.0, pnpm 11.17.0 and Bun 1.4.1 as in \"Build Stacktape from source\", then copied to the runner.",
+  "stacktapeConsole": "dev Console API (https://dev-api.stacktape.com), AWS account connection stacktape-e2e",
+  "order": [
+    "setup of all 33 tests (not measured), one stream per tool",
+    "Render Git push lanes (one per app, ten cold/warm pairs) beside the local phases",
+    "Lambda packaging, serially: per app, per tool, ten clean then ten warm runs; then container image sizes",
+    "Lambda CLI deploys, alone: per app, ten rounds, rotating the tool order and alternating handler/shared",
+    "container CLI deploys: one lane per app in parallel, ten rounds, rotating the tool order"
+  ],
+  "packageSamples": 300,
+  "imageSizeSamples": 6,
+  "deploySamples": 510,
+  "validDeploySamples": 510,
+  "packageFailures": 0,
+  "packageFirstSampleAt": "2026-10-21T21:00:20.447Z",
+  "packageLastSampleAt": "2026-10-21T22:09:58.698Z",
+  "lambdaDeployFirstSampleAt": "2026-10-21T22:11:02.600Z",
+  "lambdaDeployLastSampleAt": "2026-10-22T00:44:37.269Z",
+  "containerDeployFirstSampleAt": "2026-10-22T00:45:41.625Z",
+  "containerDeployLastSampleAt": "2026-10-22T01:56:35.302Z",
+  "renderPushFirstSampleAt": "2026-10-21T21:03:16.831Z",
+  "renderPushLastSampleAt": "2026-10-22T00:14:07.650Z",
+  "samplesPerCell": 10,
+  "containerModes": {
+    "container-python": {
+      "code-swap": 10
+    },
+    "container-node": {
+      "code-swap": 10
+    },
+    "five-services": {
+      "code-swap": 10
+    }
+  },
+  "validation": {
+    "commandExitCodesAllZero": true,
+    "businessChecksAllPassed": true,
+    "unchangedTargetsAllPreserved": true,
+    "uniqueDeployRevisions": 510
+  },
+  "memory": {
+    "sampledRuns": 810,
+    "machineTotalMb": 15704,
+    "maxPeakUsedMb": 12161,
+    "maxSwapOutPagesInOneRun": 42940,
+    "maxSwapInPagesInOneRun": 10613,
+    "note": "Whole-machine samples every 250 ms per run (bench.mjs sampleMemory). Page size 4 KiB. See memory.md."
+  },
+  "stacktapeImageSize": "stacktape package fails with codeSwap: true, so the two Stacktape image-size rows were packaged with codeSwap removed (codeSwapOptIn: false, note in the row). The images the code-swap services ran are in stacktape-running-images.json.",
+  "unmeasuredSmokeDeploys": "One deploy of each Stacktape container app after setup, into a separate results directory, to confirm code swap worked with this build. All three swapped.",
+  "notRerun": [
+    "Stacktape Git push (dev Console runner not updated)",
+    "Serverless, SST and CDK Git push (GitHub Actions)",
+    "Heroku Git push",
+    "Ravion (account blocked)",
+    "mixed Lambda changes",
+    "deployed function unpacked sizes"
+  ],
+  "rawFilesSha256": {
+    "deploy.jsonl": "a871c5ec67ed69d187fa203f92b4c3aef6ea75ed0bc2ca6f8ac6950a7c0e06d5",
+    "package.jsonl": "94d574bd6e2739bd5c1b079c4dc9c3e9371ae65022304a8d5630a7f6c168ac36"
+  },
+  "cleanupVerificationFile": "cleanup.json"
+}

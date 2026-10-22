@@ -49,9 +49,207 @@ Replace `sst lambda-25` with any tool and application from the list of branches.
 
 <!-- /generated:credentials -->
 
+## 22 October 2026 rerun
+
+This rerun measured every tool on the same machine in one session, with the Stacktape fixes merged up to
+[`028ef1a7`](https://github.com/stacktape/stacktape/commit/028ef1a78e30f30e4fd37c3f0c383f61842b1175). It replaces the
+21 October numbers, including the Serverless `lambda-25` cells that were measured while the machine was swapping. These
+are qualification measurements of a source build, not released-CLI launch numbers.
+
+- **Machine:** dedicated EC2 `i-0106242a6e01aa4f2`, Name `bmk-rerun-20261022`, `c7i.2xlarge` (8 vCPUs, 16 GB),
+  Amazon Linux 2023, Node.js 24.15.0, Docker 29.7.2 with the containerd image store, buildx 0.38.0, Heroku CLI 11.12.0,
+  in `eu-west-1`. Same 8 GiB swap file and EBS temporary directory as on 21 October.
+- **Tools:** Stacktape `4.0.0-bench.028ef1a7` built from source as in
+  [Build Stacktape from source](#build-stacktape-from-source), using the dev Console API and the `stacktape-e2e` account
+  connection. Serverless 4.44.0 with `build.esbuild.buildConcurrency: 8`, SST 4.17.2, CDK CLI 2.1145.0, CDK hotswap,
+  Heroku and Render as they were that night.
+- **Scope:** Lambda `lambda-1`, `lambda-5` and `lambda-25` for every Lambda tool: ten clean and ten warm packaging runs,
+  ten handler changes and ten shared-package changes. Ten CLI deploys per container app for Stacktape (with
+  `codeSwap: true`), SST, AWS CDK, CDK hotswap and Heroku. One image size per container app for Stacktape, SST and CDK.
+  Ten Render Git-push pairs per container app. Mixed changes, Ravion and every other Git-push journey were not rerun.
+- **Order:** setup of all tests first (not measured). Packaging ran alone, 21 Oct 21:00–22:10 UTC. Lambda deploys ran
+  alone, 22:11–00:45 UTC, by app in ten rounds that rotate the tool order and alternate handler and shared changes.
+  Container deploys ran 00:45–01:57 UTC, one lane per app in parallel, ten rounds with a rotating tool order. The
+  Render lanes ran 21:03–00:14 UTC beside packaging and the Lambda deploys; they only push and poll, Render builds on
+  its own machines. One unmeasured deploy of each Stacktape container app ran after setup to confirm code swap worked
+  with this build.
+- **Validation:** all 300 packaging runs and all 510 deploy and push runs passed. Every deploy exited with code zero,
+  served the expected revision, passed the business checks and kept unchanged services on their old code. Every one of
+  the 30 Stacktape container deploys was an in-place code swap, none an image fallback. Every measured cell has ten
+  valid runs.
+- **Memory:** every run now records the machine's peak memory and the pages swapped in and out while it ran
+  ([`memory.md`](results/2026-10-22/memory.md)). The highest peak was 11.9 of 15.3 GB. Serverless `lambda-25` peaked at
+  11.5 GB with eight parallel builds and paged out at most about 68 MB in a run, with almost nothing paged back in, so
+  no tool ran under memory pressure.
+- **Data:** [`results/2026-10-22/`](results/2026-10-22), the [complete report](results/2026-10-22/report.md), the
+  [comparison with 21 and 17 October](results/2026-10-22/comparison.md) and [`run.json`](results/2026-10-22/run.json).
+  Reproduce the report with `BENCH_RESULTS_DIR=results/2026-10-22 node report.mjs --markdown`.
+
+Every cell is median (minimum–maximum) of ten valid runs; **bold** is the best in its row. Upload sizes use decimal MB
+and count each shared layer once.
+
+**Lambda packaging, empty build cache: seconds**
+
+| App | Stacktape | Serverless | SST | AWS CDK | CDK hotswap |
+| --- | --- | --- | --- | --- | --- |
+| `lambda-1` | **2.3 (2.3–2.4)** | 5.8 (5.7–5.8) | 7.2 (6.9–7.5) | 3.4 (3.3–3.4) | 3.3 (3.2–3.5) |
+| `lambda-5` | **3.1 (3.1–3.2)** | 9.7 (9.5–9.9) | 10.2 (10.0–10.6) | 6.0 (5.9–6.3) | 5.7 (5.5–5.9) |
+| `lambda-25` | **3.8 (3.7–3.8)** | 28.4 (28.0–29.2) | 23.9 (23.7–24.2) | 17.6 (17.4–17.6) | 17.7 (17.3–17.9) |
+
+**Lambda packaging, source change: seconds**
+
+| App | Stacktape | Serverless | SST | AWS CDK | CDK hotswap |
+| --- | --- | --- | --- | --- | --- |
+| `lambda-1` | **2.3 (2.3–2.3)** | 5.8 (5.6–6.0) | 7.2 (7.1–7.4) | 3.4 (3.3–3.4) | 3.3 (3.3–3.4) |
+| `lambda-5` | **3.2 (3.1–3.2)** | 9.8 (9.5–9.9) | 10.7 (10.4–10.9) | 6.0 (5.9–6.0) | 5.6 (5.5–5.8) |
+| `lambda-25` | **3.8 (3.7–3.8)** | 29.7 (29.1–30.1) | 25.0 (23.6–25.3) | 17.3 (16.6–17.8) | 17.8 (17.6–18.2) |
+
+**Lambda upload size: MB, functions, layers and source maps**
+
+| App | Stacktape | Serverless | SST | AWS CDK | CDK hotswap |
+| --- | --- | --- | --- | --- | --- |
+| `lambda-1` | **7.79 (7.79–7.79)** | 19.87 (19.87–19.87) | 44.07 (44.07–44.07) | 10.33 (10.33–10.33) | 10.33 (10.33–10.33) |
+| `lambda-5` | **19.52 (19.52–19.52)** | 96.08 (96.08–96.08) | 178.31 (178.31–178.31) | 25.31 (25.31–25.31) | 25.31 (25.31–25.31) |
+| `lambda-25` | **19.55 (19.55–19.55)** | 464.31 (464.31–464.31) | 817.56 (817.56–817.56) | 96.47 (96.47–96.47) | 96.47 (96.47–96.47) |
+
+**Lambda CLI deploy, handler changes: seconds until new code serves**
+
+| App | Stacktape | Serverless | SST | AWS CDK | CDK hotswap |
+| --- | --- | --- | --- | --- | --- |
+| `lambda-1` | **10.7 (10.4–11.6)** | 21.8 (21.0–24.5) | 15.4 (14.7–18.7) | 22.2 (21.9–25.0) | 13.2 (12.8–15.6) |
+| `lambda-5` | **12.2 (11.7–12.7)** | 26.7 (26.3–27.6) | 18.3 (17.8–20.1) | 26.2 (25.2–30.0) | 16.5 (16.1–18.6) |
+| `lambda-25` | **14.5 (12.9–19.7)** | 56.7 (53.7–61.8) | 35.0 (34.2–44.9) | 71.8 (46.5–75.7) | 36.9 (33.9–39.5) |
+
+**Lambda CLI deploy, shared-package change: seconds until new code serves**
+
+| App | Stacktape | Serverless | SST | AWS CDK | CDK hotswap |
+| --- | --- | --- | --- | --- | --- |
+| `lambda-1` | **10.8 (10.6–10.9)** | 21.8 (21.3–22.8) | 15.2 (14.7–15.7) | 22.0 (21.6–26.9) | 13.1 (12.7–13.8) |
+| `lambda-5` | 17.3 (16.9–18.1) | 27.2 (26.2–31.5) | 18.4 (17.9–18.9) | 25.5 (24.8–25.7) | **16.4 (15.8–17.2)** |
+| `lambda-25` | **19.3 (18.6–20.7)** | 57.3 (53.4–83.2) | 35.2 (32.5–44.4) | 62.8 (47.9–80.8) | 36.2 (35.0–39.9) |
+
+**Container CLI deploy: seconds until new code serves**
+
+| App | Stacktape | SST | AWS CDK | CDK hotswap | Heroku |
+| --- | --- | --- | --- | --- | --- |
+| `container-node` | **4.1 (4.0–4.1)** | 54.5 (42.0–65.1) | 63.0 (60.0–92.1) | 44.5 (36.0–56.0) | 26.6 (25.0–28.1) |
+| `container-python` | **7.6 (7.1–19.1)** | 48.5 (42.0–77.1) | 64.5 (61.0–74.0) | 42.5 (38.0–47.0) | 20.0 (19.0–58.1) |
+| `five-services` | **6.1 (5.1–6.1)** | 58.5 (53.0–76.1) | 80.1 (70.0–91.1) | 55.0 (47.0–59.0) | 29.0 (26.0–35.0) |
+
+**Container image size: MB, compressed, one measurement**
+
+| App | Stacktape | SST | AWS CDK |
+| --- | --- | --- | --- |
+| `container-node` | **63.39 (63.39–63.39)** | 86.63 (86.63–86.63) | 86.63 (86.63–86.63) |
+| `container-python` | **53.44 (53.44–53.44)** | 54.68 (54.68–54.68) | 54.68 (54.68–54.68) |
+
+Stacktape's image sizes were packaged with `codeSwap` removed from the configuration, because `stacktape package`
+fails when it is set (see [Stacktape bug found in this run](#stacktape-bug-found-in-this-run)). The images the
+code-swap services actually ran are larger: 66.40 MB for `container-node` and 56.46 MB for `container-python`, plus a
+2.2 MB `stp-cloudmap-drain` sidecar image in the same task definition
+([`stacktape-running-images.json`](results/2026-10-22/stacktape-running-images.json)). With code swap on, the Python
+image would be 1.8 MB larger than SST's and CDK's 54.68 MB.
+
+**Git push: seconds from `git push` until the new code serves (only Render rerun)**
+
+Only Render's Git push was rerun, on 22 October. The other columns are the 17 October measurements (Stacktape: 17–18
+October, dev Console runner, CLI `16d16c8e`, small sample counts). The dev Console runner does not have the latest
+runner changes, so Stacktape's Git push was not rerun. The owner dropped the first-push container test, which
+Stacktape loses.
+
+| App | Push | Stacktape 17–18 Oct | Serverless 17 Oct | SST 17 Oct | AWS CDK 17 Oct | Render 22 Oct | Heroku 17 Oct |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `lambda-1` | first push | pending | 57.4 (47.1–61.5) | **57.2 (49.8–64.3)** | 58.9 (53.7–66.1) |  |  |
+| `lambda-5` | first push | 226.9 (220.5–231.9), n=4 | 65.0 (58.0–93.7) | **59.2 (53.9–63.4)** | 59.9 (51.9–69.0) |  |  |
+| `lambda-25` | first push | 220.7 (125.8–240.4), n=4 | 127.8 (109.6–219.4) | **72.0 (58.9–86.1)** | 102.8 (82.3–165.2) |  |  |
+| `lambda-1` | 15 minutes later | pending | **55.4 (47.2–60.9)** | 58.1 (48.5–65.4) | 55.5 (49.9–63.4) |  |  |
+| `lambda-5` | 15 minutes later | **30.9 (30.4–35.2), n=3** | 64.4 (55.6–99.4) | 60.4 (45.3–66.6) | 59.8 (49.9–69.8) |  |  |
+| `lambda-25` | 15 minutes later | **33.2 (32.9–34.7), n=3** | 118.4 (110.3–139.9) | 75.4 (62.7–84.4) | 105.0 (68.2–134.7) |  |  |
+| `container-node` | 15 minutes later | 56.1 (50.1–60.1), n=4 |  | 97.5 (86.0–116.1) | 109.6 (97.0–122.1) | 44.1 (36.1–89.1) | **37.0 (33.0–76.1)** |
+| `container-python` | 15 minutes later | pending |  | 96.1 (86.0–115.1) | 105.1 (96.0–116.1) | 59.1 (53.1–105.1) | **29.0 (27.0–34.0)** |
+| `five-services` | 15 minutes later | pending |  | 115.0 (106.0–134.1) | 112.1 (100.0–130.0) | **43.1 (36.1–67.1)** |  |
+
+Render's first pushes on 22 October, for reference: 35.1 (31.1–44.1) for `container-node`, 61.6 (48.1–96.1) for
+`container-python` and 43.1 (35.0–70.1) for `five-services`. The Stacktape first-push Lambda numbers above predate the
+runner preparation fix in [stacktape#255](https://github.com/stacktape/stacktape/pull/255); the owner measured about
+54 s for `lambda-5` and 61 s for `lambda-25` after it, without a sample range, so they are not in the table.
+
+**What Stacktape wins and loses**
+
+Counting the 20 cells measured in this run (packaging, upload size, the two Lambda deploys, container deploys and image
+size), Stacktape is fastest or smallest in 19, a 95% win rate. Git push is not counted, because only Render was rerun.
+
+| Cell | `lambda-1` | `lambda-5` | `lambda-25` |
+| --- | --- | --- | --- |
+| Packaging, empty cache | win: 2.3 vs CDK hotswap 3.3 | win: 3.1 vs CDK hotswap 5.7 | win: 3.8 vs CDK 17.6 |
+| Packaging, source change | win: 2.3 vs CDK hotswap 3.3 | win: 3.2 vs CDK hotswap 5.6 | win: 3.8 vs CDK 17.3 |
+| Upload size (MB) | win: 7.79 vs CDK 10.33 | win: 19.52 vs CDK 25.31 | win: 19.55 vs CDK 96.47 |
+| Deploy, handler change | win: 10.7 vs CDK hotswap 13.2 | win: 12.2 vs CDK hotswap 16.5 | win: 14.5 vs SST 35.0 |
+| Deploy, shared change | win: 10.8 vs CDK hotswap 13.1 | **loss: 17.3 vs CDK hotswap 16.4** | win: 19.3 vs SST 35.2 |
+
+| Cell | `container-node` | `container-python` | `five-services` |
+| --- | --- | --- | --- |
+| CLI deploy | win: 4.1 vs Heroku 26.6 | win: 7.6 vs Heroku 20.0 | win: 6.1 vs Heroku 29.0 |
+| Image size (MB) | win: 63.39 vs CDK/SST 86.63 | win: 53.44 vs CDK/SST 54.68 |  |
+
+- **The one loss: the five-function shared change** (17.3 s versus CDK hotswap's 16.4 s; SST takes 18.4 s). Stacktape
+  keeps the shared package in a shared Lambda layer. A shared edit publishes a new layer version and points every
+  function at it. The CLI's Deploy phase takes about 9.4 s for this, against 4.2 s for a handler edit. As with handler
+  edits, the functions answer from the new code about 3.5 s after the CLI exits. CDK hotswap bundles the shared code into each
+  function and only uploads five ZIPs (25 MB) and updates their code. At 25 functions that duplication costs CDK
+  hotswap 96 MB of uploads and Stacktape wins, 19.3 s against SST's 35.2 s.
+- **Container deploys measure an opt-in feature.** With `codeSwap: true`, Stacktape replaces the code inside the running
+  Fargate task; no image is built or pulled and no task is replaced. SST, CDK and CDK hotswap roll out a new image and a
+  new task, and Heroku builds a slug and restarts the dyno. Code swap applies only to code changes on eligible
+  services; a dependency or configuration change uses Stacktape's normal image deploy. That path was last measured on
+  17 October at 40.1, 47.6 and 57.6 s, which loses to Heroku (28.0, 21.6, 30.5 s) and, for Python and five services, to CDK hotswap (40.5, 54.5 s).
+- **Python image size is close.** The default Stacktape Python image is 1.2 MB smaller than SST's and CDK's; the
+  code-swap image is 1.8 MB larger (see above).
+
+**Cells that may look unfair to a competitor**
+
+- CDK hotswap leaves the CloudFormation stack out of date and is documented for development stacks only; the CDK
+  column is the same tool without it.
+- SST's packaging time includes `sst diff`, which compares the plan with AWS, because SST has no packaging-only command.
+- CDK's packaging time excludes zipping, which CDK does during deploy (its upload size includes the ZIPs).
+- Serverless uses `serverless deploy` for every change; `serverless deploy function` would be faster for a single
+  function but skips CloudFormation.
+- Heroku and Render build on their own machines in the EU, so their times include their build queues. Render
+  deploys from a second copy of the fork, as on 17 October.
+- SST's container command exits about 8 s after it starts, before the new task serves; CDK's command waits for ECS to
+  settle (190–240 s). Both are timed until the new code serves, not until the command exits.
+
+### Stacktape bug found in this run
+
+`stacktape package` fails for a stack whose web services set `codeSwap: true`:
+
+```text
+[x] Unexpected Error
+An unexpected error occurred. Last captured event: PACKAGE_ARTIFACTS.
+[x] No value provided for input HTTP label: Bucket. (UNEXPECTED_ERROR)
+```
+
+It failed for `container-node` and `container-python` in the packaging phase
+(`stacktape package --stage bmk --region eu-west-1 --profile stacktape-e2e`), and again in a copy of the project with
+`--logLevel debug`. The same copy with `codeSwap` removed packaged normally (60.45 MB image reported by the CLI).
+`stacktape deploy` with `codeSwap: true` works. The code-swap image extension seems to need the deployment bucket name,
+which `package` does not resolve. Stacktape's image sizes above were measured without `codeSwap` because of this.
+
+### Cleanup verification
+
+Every test was removed with `node bench.mjs remove`. Stacktape's delete of `five-services` failed twice on API Gateway
+VPC-link deletion (`InternalFailure`); after the remaining VPC link was deleted directly, the third delete succeeded.
+What the tools' own removal leaves was then deleted: CDK hotswap's task-definition revisions, the CDK functions' and
+services' log groups, the CDK assets and images uploaded during the run, and SST's bootstrap (its state and asset
+buckets, asset repository and parameters), which this run created. The runner instance, its root volume, security
+group, IAM role and instance profile, the secrets in SSM and the transfer bucket are gone, and no Heroku app or
+`bmk-render-*` service remains. Only `CDKToolkit` and `stacktape-cmu16jloi000007q2pix3alju` remain as stacks. The 180
+deleted task-definition revisions are `DELETE_IN_PROGRESS` until AWS finishes removing them. Details are in
+[`cleanup.json`](results/2026-10-22/cleanup.json).
+
 ## 21 October 2026 focused qualification
 
-This branch records the larger Lambda fixtures and Stacktape's opt-in container code swap. Packaging samples ran
+This run introduced the larger Lambda fixtures and Stacktape's opt-in container code swap; the 22 October rerun above replaces its numbers. Packaging samples ran
 05:56–08:20 UTC; deploy samples ran 08:21–12:42 UTC on 21 October. These are qualification measurements of source
 builds, not released-CLI launch numbers. The 17 October results below remain the baseline.
 
@@ -127,7 +325,7 @@ layer once. The same application source and production dependency locks went to 
 | `lambda-5` | 30.7 (30.1–32.8) | 26.5 (25.8–27.8) | 18.1 (17.6–18.5) | 26.1 (25.1–35.6) | 16.2 (15.9–16.5) |
 | `lambda-25` | 51.4 (49.8–53.3) | 363.0 (214.5–468.0) [a] | 33.4 (31.3–34.5) | 67.9 (45.7–74.7) | 35.7 (33.0–36.6) |
 
-[a] Affected by memory pressure; pending re-measurement. Serverless 4.44 builds and zips every function at the same
+[a] Affected by memory pressure; re-measured on 22 October with `buildConcurrency: 8` (28.4 s packaging, 56.7 s handler deploy). Serverless 4.44 builds and zips every function at the same
 time by default (`build.esbuild.buildConcurrency` defaults to the number of functions). With the 21 October fixture,
 25 parallel builds need more memory than the 16 GB benchmark machine has, so the machine swapped. Packaging the same
 project on a 43 GB development machine, limited to 8 CPUs, peaked at about 19 GB of memory for the default and about
@@ -747,10 +945,11 @@ them from the tool modules in [`tools/`](tools).
 
 ### Stacktape
 
-The 21 October container qualification opts into `web-service.properties.codeSwap: true`. This feature is off by
-default. The eligible Node.js service uses amd64, no configured health check, and one task (at most two during a
-rollout). Current Stacktape supports one container service per stack: Python and `five-services` use image fallback.
-Every result records `codeSwapOptIn`, `deploymentMode` and the CLI's explanation. The 17 October image deployment
+The container tests since 21 October opt into `web-service.properties.codeSwap: true`. This feature is off by
+default. The services use amd64, no configured health check, and one task (at most two during a rollout). Since
+[`028ef1a7`](https://github.com/stacktape/stacktape/commit/028ef1a78e30f30e4fd37c3f0c383f61842b1175), code swap also
+covers the Python service, whose `requirements.txt` pins every package with hashes, and several services per stack; on
+21 October Python and `five-services` still used image fallback. Every result records `codeSwapOptIn`, `deploymentMode` and the CLI's explanation. The 17 October image deployment
 numbers remain in the original `results/` series. Compare the opt-in results separately; do not call a fallback a swap.
 
 
@@ -784,7 +983,8 @@ numbers remain in the original `results/` series. Compare the opt-in results sep
   so the machine swapped. With 8 parallel builds it peaked at about 9 GB. Bundling is CPU-bound, so running more
   parallel builds than the machine has vCPUs does not finish sooner. [Serverless's build guide](https://www.serverless.com/framework/docs/providers/aws/guide/building)
   documents this setting for limiting concurrency. It changes nothing for the 1- and 5-function apps. The 21 October
-  `lambda-25` Serverless results were measured with the default and are marked as pending re-measurement.
+  `lambda-25` Serverless results were measured with the default; the 22 October rerun uses this setting, and the whole
+  machine then peaked at 11.5 GB.
 - `serverless deploy function` is faster for a single function, but it is a separate command and skips
   CloudFormation, so we use `serverless deploy`.
 - Git push: GitHub Actions, using the
@@ -903,7 +1103,10 @@ query compiler is plain JavaScript and WebAssembly in Prisma 7. `prisma generate
 
 ## Run the benchmark
 
-Use `BENCH_RESULTS_DIR=results/2026-10-21` for the new fixture qualification, including when running `report.mjs`.
+Use `BENCH_RESULTS_DIR=results/2026-10-22` for the current qualification (`results/2026-10-21` for the previous one),
+including when running `report.mjs`. Every packaging and deploy run records the machine's peak memory, peak swap and
+the pages swapped in and out while it ran, in its `memory` field. On EC2, define the AWS profile with only a `region`,
+so every tool falls back to the instance role; SST rejects a profile that uses `credential_source`.
 `stacktape deploy` and `delete` use the explicit `--awsAccount` connection. `stacktape package` rejects that option
 and uses local AWS credentials, so the harness passes `--profile "$AWS_PROFILE"` explicitly instead.
 The original `results/` files retain the 17 October fixture and image-deploy measurements. The Lambda fixture changed
@@ -957,7 +1160,7 @@ The published results use a Stacktape CLI built from source. Each result records
 
 ```sh
 git clone https://github.com/stacktape/stacktape && cd stacktape
-git checkout 1aba589f64ecf4b99a21de493e0a19ce32188303   # the commit in tools/stacktape.mjs
+git checkout 028ef1a78e30f30e4fd37c3f0c383f61842b1175   # the commit in tools/stacktape.mjs
 pnpm install --frozen-lockfile
 pnpm turbo run build --filter=@stacktape/init-ui
 cd apps/cli

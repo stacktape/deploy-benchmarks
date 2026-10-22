@@ -1,0 +1,33 @@
+{
+  "note": "Images in the task definitions of the code-swap services after the series. bytes: compressed size in the local containerd store (null: not built locally; the 2.2 MB stp-cloudmap-drain sidecar is pulled from ECR, size from ECR 2211973 bytes).",
+  "images": [
+    {
+      "app": "container-node",
+      "tool": "stacktape",
+      "taskDefinition": "bmk-stacktape-container-node-bmk-api-task-definition:16",
+      "image": "71f9291e-stp-multi-container-workload-repo@sha256:66a6306db78bf2dbf3487f293aa8d6990d8e506fdffab9cc43fe422becf886e4",
+      "bytes": null
+    },
+    {
+      "app": "container-node",
+      "tool": "stacktape",
+      "taskDefinition": "bmk-stacktape-container-node-bmk-api-task-definition:16",
+      "image": "71f9291e-stp-multi-container-workload-repo:api-service-container--a5979c323ea4e52d829a1334eb32a1e18f4c628a--v000001",
+      "bytes": 66400364
+    },
+    {
+      "app": "container-python",
+      "tool": "stacktape",
+      "taskDefinition": "bmk-stacktape-container-python-bmk-api-task-definition:25",
+      "image": "ed0a06a-stp-multi-container-workload-repo:api-service-container--284932a98f34c4b36d115ed7751f18180dcfeb82--v000001",
+      "bytes": 56461229
+    },
+    {
+      "app": "container-python",
+      "tool": "stacktape",
+      "taskDefinition": "bmk-stacktape-container-python-bmk-api-task-definition:25",
+      "image": "ed0a06a-stp-multi-container-workload-repo@sha256:66a6306db78bf2dbf3487f293aa8d6990d8e506fdffab9cc43fe422becf886e4",
+      "bytes": null
+    }
+  ]
+}

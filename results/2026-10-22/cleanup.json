@@ -1,0 +1,44 @@
+{
+  "verifiedAt": "2026-10-22T02:35:16Z",
+  "profile": "stacktape-e2e",
+  "account": "597581086285",
+  "region": "eu-west-1",
+  "removal": "node bench.mjs remove for all 30 AWS and Heroku tests and the 3 Render tests. stacktape delete of five-services failed twice on API Gateway VPC-link deletion (InternalFailure); the remaining VPC link was deleted directly and the third stacktape delete succeeded.",
+  "remainingStacks": [
+    { "name": "CDKToolkit", "status": "CREATE_COMPLETE" },
+    { "name": "stacktape-cmu16jloi000007q2pix3alju", "status": "CREATE_COMPLETE" }
+  ],
+  "benchmarkStacksRemaining": 0,
+  "remainingBenchmarkFunctions": 0,
+  "remainingLayers": 0,
+  "remainingClusters": 0,
+  "remainingLoadBalancers": 0,
+  "remainingVpcLinks": 0,
+  "remainingApis": 0,
+  "remainingNonDefaultVpcs": 0,
+  "remainingNatGatewaysAndEips": 0,
+  "remainingBenchmarkLogGroups": 0,
+  "deletedAfterToolRemoval": {
+    "cdkHotswapTaskDefinitionRevisionsDeregistered": 50,
+    "benchmarkTaskDefinitionRevisionsDeleted": 180,
+    "logGroups": 76,
+    "cdkAssetObjectVersionsFromThisRun": 1452,
+    "cdkContainerAssetImagesFromThisRun": 100,
+    "sstBootstrap": ["sst-asset-cvazrmukxwfv", "sst-state-cvazrmukxwfv", "ECR sst-asset", "/sst/bootstrap", "6 /sst/passphrase parameters"]
+  },
+  "taskDefinitionStates": { "ACTIVE": 0, "INACTIVE": 0, "DELETE_IN_PROGRESS": 180 },
+  "taskDefinitionFinalDeletion": "AWS finishes removing DELETE_IN_PROGRESS revisions asynchronously; no ECS clusters remain.",
+  "keptOnPurpose": ["CDKToolkit and its bucket and container repository", "stacktape-cmu16jloi000007q2pix3alju", "serverless-framework-deployments-eu-west-1-96f789c9-315c (pre-existing, empty)"],
+  "runner": {
+    "instance": "i-0106242a6e01aa4f2 terminated",
+    "rootVolume": "vol-01bf0f747d9017b0e absent",
+    "securityGroup": "sg-0c4da7e22eaf22f50 absent",
+    "keyPair": "none created",
+    "roleAndInstanceProfile": "bmk-rerun-20261022-runner absent",
+    "ssmSecrets": "/bmk/bench22/* absent",
+    "transferBucket": "bmk-rerun-20261022-transfer-597581086285 absent"
+  },
+  "heroku": "no apps",
+  "render": "bmk-render-* services deleted; only the pre-existing render-test service remains",
+  "notRemoved": "The six dev Console projects bmk-stacktape-* (Console records only; their stacks are deleted). The Render source repository matuscongrady/commerce-deploy-bench-20261009 keeps the pushed test commits."
+}
