@@ -49,6 +49,104 @@ Replace `sst lambda-25` with any tool and application from the list of branches.
 
 <!-- /generated:credentials -->
 
+## 23 October 2026 Git push rerun
+
+This rerun measured only Stacktape's Git push: a push to the test's branch, a deploy on the project's runner in the
+connected AWS account, and the time until the new code serves. It used Stacktape `main` at
+[`0e48e9d0`](https://github.com/stacktape/stacktape/commit/0e48e9d05d167b69dd4abada83d0d40d1b73bdc7), which includes
+runner preparation at Git setup, code swap for Python and for several services per stack, and the faster Lambda
+shared-code path. The owner dropped the first push with an empty cache (Stacktape still lost it to Render after the
+runner optimizations), so each run is a warm push and a resume push. These are qualification measurements of a source
+build on the dev Console, not released-CLI launch numbers.
+
+- **Stacktape:** CLI `4.0.0-bench.0e48e9d0`, built as in [Build Stacktape from source](#build-stacktape-from-source)
+  and baked into a private test runner image. The dev Console ran Console commit `fa1e0f2a` with that image selected
+  and the project's CLI version set to the build. Runners were the default `c7a.2xlarge` with a persistent cache disk
+  in `eu-west-1`. The applications are the 21 October fixtures, with `codeSwap: true` on the container services.
+- **Observer:** a WSL 2 laptop (i7-13700K) ran the harness, pushed, and polled the services. Its monotonic clock ran
+  4.8–5.1% fast against AWS's time all day. `clock.mjs` measured the rate once a minute, and every result below is
+  converted to real time with it ([Git push runs](#git-push-runs)). The rows keep the measured `readyMs` and the rate
+  (`clockRate`).
+- **Journeys:** **warm** is a push 15 minutes after the previous push served; the runner was running in every warm
+  sample. **Resume** is a push after the idle runner hibernated (15 idle minutes), plus one minute; it was stopped in
+  every resume sample. One excluded first push started each series.
+- **Order:** setup 09:22–09:43 UTC. All five applications ran in parallel, ten warm/resume runs each, 09:32–15:33 UTC.
+  `container-python` and `five-services` stopped after eight and nine warm runs, when the Console change below was
+  deployed for a second series, 15:40–19:14 UTC.
+- **Validation:** every included push served the new revision, passed the business checks and kept unchanged services
+  on their old code. Three resume pushes are excluded: they reached the Console a few seconds after the instance
+  stopped, while the Console was still recording the stop ("Another deployment is still preparing this EC2 runner"),
+  so the Console retried the push about 50 seconds later. The harness now waits a minute after the stop; the earlier
+  series ran without that wait. One `lambda-25` resume push (141.9 s) met EC2 "Insufficient capacity" on start, and the
+  Console retried after about 70 seconds. It is included because it is what a user would have seen.
+- **Data:** [`results/2026-10-23/`](results/2026-10-23), the [report](results/2026-10-23/report.md),
+  [`clock.jsonl`](results/2026-10-23/clock.jsonl) and [`run.json`](results/2026-10-23/run.json). The second series is
+  in [`console-app-130/`](results/2026-10-23/console-app-130).
+
+**Stacktape Git push: seconds from `git push` until the new code serves, median (min–max), n**
+
+| App | Warm | Resume after hibernation | Heroku 22 Oct | Render warm 22 Oct |
+| --- | --- | --- | --- | --- |
+| `lambda-5` | 38.0 (36.0–38.9), n=10 | 58.1 (53.8–64.2), n=10 |  |  |
+| `lambda-25` | 40.2 (39.5–41.3), n=10 | 59.5 (56.3–141.9), n=10 |  |  |
+| `container-node` | **18.2 (17.2–21.9), n=10** | 38.7 (36.1–53.3), n=10 | 26.6 (25.0–28.1) | 44.1 (36.1–89.1) |
+| `container-python` | 58.4 (49.5–79.1), n=8 | 91.4 (67.6–107.9), n=5 | **20.0 (19.0–58.1)** | 59.1 (53.1–105.1) |
+| `five-services` | 80.9 (72.2–95.2), n=9 | 111.6 (104.0–121.1), n=7 | **29.0 (26.0–35.0)** | 43.1 (36.1–67.1) |
+
+Heroku's column is its 22 October deploy of the same change (`heroku builds:create`, a build from the pushed source);
+Render's is its warm Git push from the same night. Neither was rerun on 23 October.
+
+- **`container-node` wins:** the runner swaps the code in place and the new code serves 18.2 s after the push, versus
+  26.6 s for Heroku and 44.1 s for Render.
+- **`container-python` and `five-services` lose, because the runner never used code swap for them.** The runner runs
+  the CLI as a CI job, and in CI the CLI imports and exports Docker's layer cache in the stack's ECR repository. Code
+  swap refuses that remote cache for Python services and for Node.js services with installed packages (`reporting`
+  in `five-services`), so every push was an image deploy. From a terminal, the same apps swap (22 October CLI results).
+- **With the fix in [console-app#130](https://github.com/stacktape/console-app/pull/130)** (not merged), the runner
+  builds with its local cache. The second series, on the same projects:
+
+| App | Warm | Resume after hibernation |
+| --- | --- | --- |
+| `container-node` | 17.1 (14.3–18.8), n=5 | 35.1 (32.2–40.7), n=5 |
+| `container-python` | 23.9 (22.8–26.8), n=6 | 43.0 (40.7–46.1), n=6 |
+| `five-services` | 17.2 (16.1–19.0), n=6 | 47.1 (45.5–49.7), n=6 |
+
+  Every push in it swapped code. `five-services` then beats Heroku (29.0 s) and Render (43.1 s), and
+  `container-python` beats Render (59.1 s) but not Heroku (20.0 s). Dropping the ECR cache export also cuts
+  `container-node`'s Build & Package from 5.3 to 2.4 s.
+- **Lambda warm pushes are slower than on 17–18 October** (30.9 and 33.2 s), because the 21 October fixtures are
+  larger. Each push installs 778 packages twice: the runner's `npm install` (about 7 s), then the CLI's own install
+  (most of its 9.3 s Initialize), which runs again because the CLI can't prove that an npm workspace install is
+  complete. Serverless, SST and CDK Git pushes were not rerun with the larger fixtures, so the table has no Lambda
+  comparison.
+- **Resume costs about 20 s** over a warm push: the Console starts the hibernated instance and the runner is ready
+  about 19–21 s later (Lambda and `container-node`).
+
+**Where the time goes: median seconds after the push, from runner log timestamps**
+
+The runner columns use CloudWatch timestamps (about one-second resolution) against the observer's push time, whose wall
+clock was within about 2 s of AWS. Serving is the corrected readiness.
+
+| App | Push | n | Console queue | Runner ready | Job start | Install start | CLI start | CLI end | Serving | CLI Initialize | Build & Package | Deploy |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `lambda-5` | warm | 10 | 3.5 | 4.0 | 6.3 | 9.3 | 16.5 | 34.8 | 38.0 | 9.3 | 3.3 | 4.2 |
+| `lambda-25` | warm | 10 | 3.4 | 3.9 | 6.2 | 9.2 | 16.5 | 36.5 | 40.2 | 9.3 | 5.0 | 4.5 |
+| `container-node` | warm | 10 | 4.1 | 4.6 | 6.8 | 10.1 | 10.8 | 20.3 | 18.2 | 0.7 | 5.2 | 0.7 |
+| `container-python` | warm | 8 | 4.0 | 4.5 | 6.7 | – | 9.7 | 187.4 | 58.4 | 0.7 | 7.2 | 62.0 |
+| `five-services` | warm | 9 | 3.7 | 4.2 | 6.5 | 10.5 | 9.5 | 190.2 | 80.9 | 0.9 | 7.6 | 68.0 |
+| `lambda-5` | resume | 10 | 4.9 | 22.6 | 24.8 | 27.8 | 34.8 | 55.1 | 58.1 | 9.3 | 3.3 | 4.3 |
+| `container-node` | resume | 10 | 3.4 | 24.8 | 27.0 | 30.0 | 30.3 | 40.5 | 38.7 | 0.7 | 5.3 | 0.7 |
+
+### Cleanup verification (23 October)
+
+The five stacks were deleted with `node bench.mjs remove`. The `five-services` deletion first failed on three API
+Gateway VPC links, which were deleted one a minute before the stack deletion was repeated. The five Console projects
+were deleted the way the Console deletes a project, which terminates the runner and deletes its cache disk, instance
+profile and role. Queries of the `stacktape-e2e` account afterwards found no `bmk-push-*` stack, runner instance,
+volume, runner instance profile or role, bucket, repository, log group, function, table, cluster or VPC link. The test
+runner image and its snapshot were deleted, and the dev Console's runner image selector points at its previous image
+again.
+
 ## 22 October 2026 rerun
 
 This rerun measured every tool on the same machine in one session, with the Stacktape fixes merged up to
@@ -155,7 +253,8 @@ image would be 1.8 MB larger than SST's and CDK's 54.68 MB.
 Only Render's Git push was rerun, on 22 October. The other columns are the 17 October measurements (Stacktape: 17–18
 October, dev Console runner, CLI `16d16c8e`, small sample counts). The dev Console runner does not have the latest
 runner changes, so Stacktape's Git push was not rerun. The owner dropped the first-push container test, which
-Stacktape loses.
+Stacktape loses. Stacktape's warm and resume pushes were rerun on 23 October; see
+[23 October 2026 Git push rerun](#23-october-2026-git-push-rerun).
 
 | App | Push | Stacktape 17–18 Oct | Serverless 17 Oct | SST 17 Oct | AWS CDK 17 Oct | Render 22 Oct | Heroku 17 Oct |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -1243,6 +1342,17 @@ application:
 For Render, Ravion and Heroku, connect the platform before `setup`: they deploy only from Git, and `setup` checks the
 deployed services.
 
+`--journeys` chooses the pushes of each run, in order, from `cold`, `warm` and `resume`. The 23 October Stacktape
+rerun used `--journeys warm,resume`. Without `cold`, one first push starts the series and is recorded as excluded.
+`warm` pushes 15 minutes after the previous push served, and must find the runner running. `resume` waits until the
+idle runner has stopped (Stacktape hibernates it after 15 idle minutes), then one more minute, and must find it
+stopped. A push that finds the runner in another state is recorded as excluded. `--start-run` continues an
+interrupted series with the next run number.
+
+To check the observer's clock, run `node clock.mjs log` beside the pushes. It records the monotonic clock against
+AWS's time once a minute. Afterwards, `node clock.mjs annotate` gives every Git push row the measured rate
+(`clockRate`), and `report.mjs` divides `readyMs` by it. Without `clock.jsonl`, the report uses `readyMs` as measured.
+
 ## Regenerate the configurations and branches
 
 The test branches and [`configs/`](configs) are generated from [`tools/`](tools), [`fixtures/`](fixtures),
@@ -1270,6 +1380,7 @@ commit with a fixed author and date, so the same files always give the same comm
 | [`configs/`](configs) | The files each tool adds to each application, with their lockfiles, generated by `node configs.mjs` |
 | [`branches.mjs`](branches.mjs) | Generates the `<app>/<tool>` branches |
 | [`report.mjs`](report.mjs) | Prints the median, fastest and slowest run of every series |
+| [`clock.mjs`](clock.mjs) | Checks the rate of the clock that times the runs, against AWS's time |
 | [`fixtures/`](fixtures) | The test applications |
 
 ## Think a tool is set up badly?

@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-23",
+  "qualification": true,
+  "scope": "Stacktape Git push only: warm and resume journeys (no cold first push, by owner decision)",
+  "awsProfile": "stacktape-e2e",
+  "awsAccount": "597581086285",
+  "region": "eu-west-1",
+  "observer": "WSL 2 on an i7-13700K laptop, Node.js 24.15.0; monotonic clock 4.8-5.1% fast against AWS, corrected per row with clock.mjs (clockRate)",
+  "runner": "Stacktape Console EC2 runner per project, c7a.2xlarge, persistent cache disk, hibernation after 15 idle minutes",
+  "runnerImage": "private test image ami-09ebed9b8e439aa2c (build 6103269c-b6c7-487c-b46f-2ceffd7064fa) with the source CLI preinstalled; deregistered after the run",
+  "stacktapeCommit": "0e48e9d05d167b69dd4abada83d0d40d1b73bdc7",
+  "stacktapeVersion": "4.0.0-bench.0e48e9d0",
+  "stacktapeConsole": "dev Console (https://dev-api.stacktape.com) at console-app fa1e0f2a; second series at console-app#130 (ca93cb8d), AWS account connection stacktape-e2e",
+  "projects": ["bmk-push-lambda-5", "bmk-push-lambda-25", "bmk-push-container-node", "bmk-push-container-python", "bmk-push-five-services"],
+  "harness": "bench.mjs push stacktape <app> --runs 10 --journeys warm,resume (STACKTAPE_PROJECT_NAME=bmk-push-<app>), harness commit dc06e05",
+  "order": [
+    "setup of the five projects with the source CLI (not measured), 09:22-09:43 UTC; Git deployment configured per project through the Console API",
+    "five lanes in parallel, 09:32-15:33 UTC: per run a warm push 15 minutes after the previous push served, then a resume push after the runner hibernated",
+    "container-python lane restarted at run 3 (11:19 UTC) with the one-minute wait after the idle stop; the other lanes ran without it and their rows were checked against the Console's provisioning log",
+    "dev Console redeployed with console-app#130; container-node, container-python and five-services, six runs (container-node five), 15:40-19:14 UTC"
+  ],
+  "excluded": "one first push per series; three resume pushes that met the Console still recording the idle stop",
+  "competitors": "not rerun; Heroku and Render from results/2026-10-22"
+}

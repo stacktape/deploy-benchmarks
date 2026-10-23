@@ -76,7 +76,8 @@ for (const r of deploys.filter((r) => !ok(r))) {
   console.log(`${markdown ? '- ' : ''}Excluded: ${r.app} ${r.tool} ${r.journey} ${r.change} run ${r.run} (${why}); log ${r.log}`);
 }
 
-const resumes = load('resume.jsonl', 'results-extra');
-table('Stacktape Git push after verified hibernation (separate samples)', resumes, (r) => `${r.app} ${r.tool} ${r.journey}`, [
+// The 17–18 October resume samples were collected separately; they belong only to the top-level results.
+const resumes = RESULTS_DIR === 'results' ? load('resume.jsonl', 'results-extra') : [];
+if (resumes.length) table('Stacktape Git push after verified hibernation (separate samples)', resumes, (r) => `${r.app} ${r.tool} ${r.journey}`, [
   ['seconds: median (min–max)', (g) => stats(g.map((r) => r.readyMs), seconds)]
 ]);
