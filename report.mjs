@@ -58,15 +58,17 @@ table('Container image size', packages.filter(isContainer), (r) => `${r.app} ${r
 // invalid after the run; it stays in the data with the reason.
 const deploys = (existsSync(join(ROOT, RESULTS_DIR)) ? readdirSync(join(ROOT, RESULTS_DIR)) : []).filter((f) => /^deploy(-[\w-]+)?\.jsonl$/.test(f)).sort().flatMap((file) => load(file));
 const ok = (r) => !r.failed && r.businessOk && r.unchangedOk && !r.excluded;
+// A row measured with a clock that ran fast or slow carries the measured rate (clock.mjs); this converts to real time.
+const ready = (r) => (r.clockRate ? r.readyMs / r.clockRate : r.readyMs);
 table('Time from deploy start (or git push return) until the new code serves', deploys, (r) => `${r.app} ${r.tool} ${r.journey} ${r.change}${r.codeSwapOptIn ? ' opt-in' : ''}`, [
   ['valid', (g) => `${g.filter(ok).length}`],
   ['excluded', (g) => `${g.filter((r) => !ok(r)).length}`],
-  ['seconds: median (min–max)', (g) => stats(g.filter(ok).map((r) => r.readyMs), seconds)]
+  ['seconds: median (min–max)', (g) => stats(g.filter(ok).map((r) => ready(r)), seconds)]
 ]);
 if (deploys.some((r) => r.codeSwapOptIn)) {
-  table('Opt-in container deployment paths (subsets of the CLI result above)', deploys.filter((r) => r.codeSwapOptIn), (r) => `${r.app} ${r.deploymentMode ?? 'failed before mode was recorded'}`, [
+  table('Opt-in container deployment paths (subsets of the results above)', deploys.filter((r) => r.codeSwapOptIn), (r) => `${r.app} ${r.journey} ${r.deploymentMode ?? 'failed before mode was recorded'}`, [
     ['valid', (g) => `${g.filter(ok).length}`],
-    ['seconds: median (min–max)', (g) => stats(g.filter(ok).map((r) => r.readyMs), seconds)]
+    ['seconds: median (min–max)', (g) => stats(g.filter(ok).map((r) => ready(r)), seconds)]
   ]);
 }
 for (const r of deploys.filter((r) => !ok(r))) {

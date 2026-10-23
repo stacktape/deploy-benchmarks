@@ -49,7 +49,7 @@ const durationMs = (text) =>
  * Where the time of the Git push job started at or after `pushedAt` went, in ms after the push returned. The new code
  * can serve before the deploy command ends, so this waits up to 20 minutes for the job's end.
  */
-async function runnerTimings({ name, pushedAt }) {
+async function runnerTimings({ app, name, pushedAt }) {
   const pushed = Date.parse(pushedAt);
   const start = ['--start-time', String(pushed - 60_000)];
   let command;
@@ -76,6 +76,9 @@ async function runnerTimings({ name, pushedAt }) {
     instanceId,
     instanceType: image?.InstanceType,
     ami: image?.ImageId,
+    // Runner setup attempts the Console failed and retried for this push, such as "Another deployment is still
+    // preparing this EC2 runner." while an idle stop is still being recorded.
+    setupFailures: consoleLog.filter((e) => /EC2 runner setup failed/.test(e.message)).map((e) => e.message.replace(/^\[ERROR\] /, '')),
     // From the push: the Console's first log line, the runner ready, the job's first output, the dependency install,
     // the deploy command and its end.
     queuedMs: since(consoleLog[0]?.timestamp),
@@ -85,7 +88,29 @@ async function runnerTimings({ name, pushedAt }) {
     installStartedMs: since(at(output, /Installing dependencies/)),
     deployStartedMs: since(at(output, /^Running: stacktape /m)),
     deployEndedMs: since(at(output, /^\s*(Total|Elapsed): /m)),
-    cliPhasesMs: phases
+    cliPhasesMs: phases,
+    // The runner's deploy reports each changed service's path, as the CLI deploy does.
+    ...(app.kind === 'service' ? { deployment: deploymentPaths(app, summary) } : {})
+  };
+}
+
+/**
+ * Each changed service reports its own outcome: `Swapped code in <service>; ...`, `Image deploy for <service>: ...` or
+ * `Code swap skipped for <service>: ...`. The run is a swap only when every changed service swapped.
+ */
+function deploymentPaths(app, output) {
+  const lines = output.split('\n').map((line) => line.trim()).filter((line) => /Swapped code in |Image deploy for |Code swap skipped for /.test(line));
+  const services = Object.fromEntries(
+    app.changed.map((s) => {
+      const line = lines.findLast((l) => l.includes(`Swapped code in ${s};`) || l.includes(`Image deploy for ${s}:`) || l.includes(`Code swap skipped for ${s}:`));
+      return [s, { mode: line?.includes(`Swapped code in ${s};`) ? 'code-swap' : 'image', detail: line ?? 'No swap reported; see command log' }];
+    })
+  );
+  const modes = new Set(Object.values(services).map((s) => s.mode));
+  return {
+    codeSwapOptIn: true,
+    deploymentMode: modes.size === 1 ? [...modes][0] : 'mixed',
+    deploymentDetail: Object.entries(services).map(([s, { detail }]) => (app.changed.length > 1 ? `${s}: ${detail}` : detail)).join(' | ')
   };
 }
 
@@ -167,28 +192,23 @@ export default {
   // Measure the normal mixed edit with --change mixed as well as the two isolated changes.
   deploy: (ctx) => [bin(ctx), 'deploy', ...common, ...projectArgs(ctx), ...account(ctx), '--autoConfirmOperation'],
   remove: (ctx) => [bin(ctx), 'delete', ...common, ...projectArgs(ctx), ...account(ctx), '--autoConfirmOperation'],
-  // Each changed service reports its own outcome: `Swapped code in <service>; ...`, `Image deploy for <service>: ...` or
-  // `Code swap skipped for <service>: ...`. The run is a swap only when every changed service swapped.
-  deploymentResult({ app, log }) {
-    if (app.kind !== 'service') return {};
+  // A CLI deploy's path, from this run's deploy command in the log. A Git push's path comes from the runner's output
+  // in buildInfo.
+  deploymentResult({ app, log, journey }) {
+    if (app.kind !== 'service' || journey !== 'cli') return {};
     const output = readFileSync(log, 'utf8').replace(/\x1b\[[0-9;]*m/g, '');
     // Only this run's deploy command: one log holds every run of a series.
-    const deploy = output.slice(Math.max(0, output.lastIndexOf(`\n$ ${bin()} deploy `)));
-    const lines = deploy.split('\n').map((line) => line.trim()).filter((line) => /Swapped code in |Image deploy for |Code swap skipped for /.test(line));
-    const services = Object.fromEntries(
-      app.changed.map((s) => {
-        const line = lines.findLast((l) => l.includes(`Swapped code in ${s};`) || l.includes(`Image deploy for ${s}:`) || l.includes(`Code swap skipped for ${s}:`));
-        return [s, { mode: line?.includes(`Swapped code in ${s};`) ? 'code-swap' : 'image', detail: line ?? 'No swap reported; see command log' }];
-      })
-    );
-    const modes = new Set(Object.values(services).map((s) => s.mode));
-    return {
-      codeSwapOptIn: true,
-      deploymentMode: modes.size === 1 ? [...modes][0] : 'mixed',
-      deploymentDetail: Object.entries(services).map(([s, { detail }]) => (app.changed.length > 1 ? `${s}: ${detail}` : detail)).join(' | ')
-    };
+    return deploymentPaths(app, output.slice(Math.max(0, output.lastIndexOf(`\n$ ${bin()} deploy `))));
   },
   buildInfo: (ctx) => runnerTimings(ctx),
+  // The EC2 state of the project's runner. The Console stops (hibernates) it after 15 idle minutes by default.
+  runnerState({ name }) {
+    const instances = aws('ec2', 'describe-instances', '--filters', `Name=tag:stp:project,Values=${project(name)}`, 'Name=tag:stp:purpose,Values=ec2-runner')
+      .Reservations.flatMap((r) => r.Instances)
+      .filter((i) => i.State.Name !== 'terminated')
+      .sort((a, b) => Date.parse(b.LaunchTime) - Date.parse(a.LaunchTime));
+    return instances[0]?.State.Name ?? 'none';
+  },
   addresses({ app, name }) {
     if (app.kind === 'lambda') return findFunctions(`${project(name)}-${STAGE}-`, app.functions);
     const outputs = stackOutputs(`${project(name)}-${STAGE}`);

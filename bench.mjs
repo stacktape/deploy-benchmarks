@@ -5,6 +5,8 @@
 //                                                            cache; for a container, record only the image size
 //   node bench.mjs deploy  <tool> <app> [--runs 5]           deploy a code change from this machine
 //   node bench.mjs push    <tool> <app> [--runs 5]           push a code change: cold, then warm 15 minutes later
+//                          [--journeys cold,warm]            or any of cold, warm and resume (Stacktape: after the
+//                                                            idle runner stopped) in this order, per run
 //   deploy and push take --change shared or --change mixed to edit the shared service package alone or together with handlers (Lambda apps)
 //   node bench.mjs remove  <tool> <app>                      delete what setup created
 import { execFile } from 'node:child_process';
@@ -23,6 +25,8 @@ const { positionals, values } = parseArgs({
     runs: { type: 'string', default: '5' },
     warm: { type: 'boolean', default: false },
     change: { type: 'string', default: 'handlers' },
+    journeys: { type: 'string', default: 'cold,warm' },
+    'start-run': { type: 'string', default: '1' },
     'cold-reset': { type: 'string' }
   }
 });
@@ -180,7 +184,7 @@ async function timedChange({ journey, push, deploy }) {
   const commands = await running;
   const memoryUsed = memory.stop();
   const commandFailed = commands.some((result) => result.code !== 0);
-  const deployment = tool.deploymentResult?.({ ...ctx, log });
+  const deployment = tool.deploymentResult?.({ ...ctx, log, journey });
   // Every target must now give the right business result from the expected revision: new for changed targets, old
   // for unchanged ones. During a rolling update a load balancer still sends some requests to the old task, so a
   // changed service gets up to a minute to answer from the new revision.
@@ -265,18 +269,45 @@ async function waitForWorkflows() {
   throw new Error(`The previous workflow run of ${branch} did not finish within 30 minutes`);
 }
 
+/**
+ * Waits until the tool's build machine has stopped on its own after being idle. Only tools with a runner that stops
+ * when idle (Stacktape) have this journey.
+ */
+async function waitForIdleStop() {
+  if (!tool.runnerState) throw new Error(`${toolName} has no idle-stopping runner; drop the resume journey`);
+  const started = Date.now();
+  for (const deadline = started + 60 * 60_000; Date.now() < deadline; await sleep(15_000)) {
+    if ((await tool.runnerState(ctx)) !== 'stopped') continue;
+    const idleStopped = new Date().toISOString();
+    // The platform records the stop a little after the instance reports it (Stacktape's idle-stop job polls the
+    // instance). A push in between would measure that hand-over rather than a resume, so wait a minute.
+    await sleep(60_000);
+    if ((await tool.runnerState(ctx)) === 'stopped') return { idleStopped, waitedForStopMs: Date.now() - started };
+  }
+  throw new Error(`The runner of ${name} did not stop within 60 minutes`);
+}
+
 async function pushRuns() {
   if (!measurements(t).push) throw new Error(`${toolName} has no Git push test on ${appId}`);
+  const journeys = values.journeys.split(',');
+  if (!journeys.every((j) => ['cold', 'warm', 'resume'].includes(j))) throw new Error('--journeys takes cold, warm and resume');
   const info = await describeRun();
   const push = [['git', 'push', 'origin', `HEAD:${branch}`]];
-  for (let i = 1; i <= runs; i++) {
-    let readyAt = 0;
-    for (const cache of ['cold', 'warm']) {
-      if (cache === 'warm') await sleep(Math.max(0, readyAt + 15 * 60_000 - Date.now()));
+  let readyAt = 0;
+  // Without a cold push in each pair, the series starts with one push that is recorded but excluded: it is the first
+  // push after setup, and the warm push that follows needs a deploy 15 minutes before it.
+  if (!journeys.includes('cold')) journeys.unshift('first');
+  // --start-run continues an interrupted series with the next run number.
+  const firstRun = Number(values['start-run']);
+  for (let i = firstRun; i <= runs; i++) {
+    for (const journey of journeys) {
+      if (journey === 'first' && i > firstRun) continue;
+      if (journey === 'warm') await sleep(Math.max(0, readyAt + 15 * 60_000 - Date.now()));
       // The previous workflow saves its caches when it ends, so the cold reset waits for it.
       await waitForWorkflows();
-      const coldReset = cache === 'cold' ? await resetCache() : undefined;
-      const result = await attempt(`git-${cache}`, () => timedChange({ journey: `git-${cache}`, push }));
+      const coldReset = journey === 'cold' ? await resetCache() : undefined;
+      const stopped = journey === 'resume' ? await waitForIdleStop() : {};
+      const result = await attempt(`git-${journey}`, () => timedChange({ journey: `git-${journey}`, push }));
       readyAt = Date.now();
       let build;
       try {
@@ -284,8 +315,17 @@ async function pushRuns() {
       } catch (error) {
         build = { error: String(error.message ?? error).slice(0, 300) };
       }
-      record('deploy.jsonl', { app: appId, run: i, ...result, coldReset, build, ...info, at: new Date().toISOString() });
-      console.log(`${name} ${cache} Git push run ${i}: ${result.failed ? `failed: ${result.error}` : `new code served after ${result.readyMs} ms`}`);
+      // A warm push must find the runner running and a resume push must find it stopped; otherwise it measured
+      // another journey.
+      const runnerMismatch =
+        (journey === 'warm' && build?.runner && build.runner !== 'running') || (journey === 'resume' && build?.runner && build.runner !== 'stopped')
+          ? `the runner was ${build.runner}, not ${journey === 'warm' ? 'running' : 'stopped'}`
+          : undefined;
+      // A resume push that found the platform still recording the idle stop measured that hand-over, not a resume.
+      const stopHandOver = journey === 'resume' && build?.setupFailures?.some((m) => /still preparing/.test(m)) ? `the platform was still recording the idle stop: ${build.setupFailures.join(' ')}` : undefined;
+      const excluded = journey === 'first' ? 'first push after setup, which only starts the series' : (runnerMismatch ?? stopHandOver);
+      record('deploy.jsonl', { app: appId, run: i, ...result, ...build?.deployment, ...stopped, coldReset, build, ...(excluded ? { excluded } : {}), ...info, at: new Date().toISOString() });
+      console.log(`${name} ${journey} Git push run ${i}: ${result.failed ? `failed: ${result.error}` : `new code served after ${result.readyMs} ms`}${excluded ? ` (excluded: ${excluded})` : ''}`);
     }
   }
 }
