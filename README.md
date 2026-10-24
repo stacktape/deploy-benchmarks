@@ -102,8 +102,8 @@ Render's is its warm Git push from the same night. Neither was rerun on 23 Octob
   the CLI as a CI job, and in CI the CLI imports and exports Docker's layer cache in the stack's ECR repository. Code
   swap refuses that remote cache for Python services and for Node.js services with installed packages (`reporting`
   in `five-services`), so every push was an image deploy. From a terminal, the same apps swap (22 October CLI results).
-- **With the fix in [console-app#130](https://github.com/stacktape/console-app/pull/130)** (not merged), the runner
-  builds with its local cache. The second series, on the same projects:
+- **With the fix in [console-app#130](https://github.com/stacktape/console-app/pull/130)**, merged on 23 October and
+  part of the current product, the runner builds with its local cache. The second series, on the same projects:
 
 | App | Warm | Resume after hibernation |
 | --- | --- | --- |
@@ -117,7 +117,10 @@ Render's is its warm Git push from the same night. Neither was rerun on 23 Octob
 - **Lambda warm pushes are slower than on 17–18 October** (30.9 and 33.2 s), because the 21 October fixtures are
   larger. Each push installs 778 packages twice: the runner's `npm install` (about 7 s), then the CLI's own install
   (most of its 9.3 s Initialize), which runs again because the CLI can't prove that an npm workspace install is
-  complete. Serverless, SST and CDK Git pushes were not rerun with the larger fixtures, so the table has no Lambda
+  complete. The runner's install is reused since
+  [stacktape#316](https://github.com/stacktape/stacktape/pull/316) and
+  [console-app#140](https://github.com/stacktape/console-app/pull/140) (merged 24 October, not measured here yet).
+  Serverless, SST and CDK Git pushes were not rerun with the larger fixtures, so the table has no Lambda
   comparison.
 - **Resume costs about 20 s** over a warm push: the Console starts the hibernated instance and the runner is ready
   about 19–21 s later (Lambda and `container-node`).
